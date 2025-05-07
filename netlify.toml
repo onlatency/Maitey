@@ -1,0 +1,18 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[dev]
+  command = "npm run dev"
+  port = 5174
+  targetPort = 5174
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# The environment variable is now managed in the Netlify UI
+# This ensures the API key is correctly passed to the client
+[context.production.environment]
+  VITE_VENICE_API_KEY = "${VITE_VENICE_API_KEY}"

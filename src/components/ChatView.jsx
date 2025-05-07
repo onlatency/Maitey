@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import MessageBubble from './MessageBubble';
 import PromptInput from './PromptInput';
 import WelcomeScreen from './WelcomeScreen';
+import SettingsPanel from './SettingsPanel';
 import { Edit2, Trash2 } from 'lucide-react';
 import { useChatContext } from '../context/ChatContext';
 import { generateImage } from '../api/veniceApi';
@@ -56,6 +57,10 @@ function ChatView() {
     
     setLoading(true);
     try {
+      // Log the settings being used to ensure they're correctly passed
+      console.log('Using settings for image generation:', settings);
+      
+      // Make sure to use the latest settings from context
       const imageBlob = await generateImage(promptText, settings);
       const imageUrl = URL.createObjectURL(imageBlob);
       
@@ -66,11 +71,20 @@ function ChatView() {
       });
     } catch (error) {
       console.error('Failed to generate image:', error);
+      
+      // Create a more detailed error message with debugging info
+      const errorMessage = `Error: ${error.message || 'Unknown error'}`;
+      const apiKeyInfo = import.meta.env.VITE_VENICE_API_KEY ? 
+        'API key exists (first 3 chars: ' + import.meta.env.VITE_VENICE_API_KEY.substring(0, 3) + '...)' : 
+        'API key is missing';
+      
+      // Update the message with detailed error information
       updateImageMessage(placeholderImageId, { 
-        text: 'Error generating image. Please try again.', 
+        text: `${errorMessage}\n\nDebug Info: ${apiKeyInfo}\n\nPlease check browser console for more details.`, 
         isLoading: false, 
         isError: true 
       });
+      setError(`Error generating image: ${error.message}`);
     }
     setLoading(false);
   };
@@ -129,44 +143,51 @@ function ChatView() {
   return (
     <div className="flex-grow flex flex-col bg-white h-full">
       {/* Chat Header with Edit/Delete options */}
-      <div className="p-4 border-b bg-gray-50 flex justify-between items-center">
+      <div className="p-4 border-b border-purple-100 bg-purple-50 flex justify-between items-center">
         {isEditing ? (
           <div className="flex items-center gap-2 w-full">
             <input
               type="text"
               value={newChatName}
               onChange={(e) => setNewChatName(e.target.value)}
-              className="flex-grow p-1 border rounded"
+              className="flex-grow p-1 border border-purple-200 rounded focus:ring-2 focus:ring-purple-300 focus:border-transparent"
               autoFocus
               onKeyDown={(e) => e.key === 'Enter' && handleSaveEdit()}
             />
             <button 
               onClick={handleSaveEdit}
-              className="px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
+              className="px-2 py-1 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors"
             >
               Save
             </button>
             <button 
               onClick={() => setIsEditing(false)}
-              className="px-2 py-1 bg-gray-300 rounded hover:bg-gray-400"
+              className="px-2 py-1 bg-gray-300 rounded hover:bg-gray-400 transition-colors"
             >
               Cancel
             </button>
           </div>
         ) : (
           <>
-            <h2 className="text-lg font-semibold text-gray-700">{chat.name}</h2>
-            <div className="flex gap-2">
+            <h2 className="text-lg font-semibold text-purple-800">{chat.name}</h2>
+            <div className="flex gap-3 items-center">
+              {/* Settings Panel - Now prominently in the header */}
+              <div className="mr-2">
+                <SettingsPanel />
+              </div>
+              
+              <div className="h-8 border-r border-purple-200 mx-1"></div>
+              
               <button 
                 onClick={handleStartEditing}
-                className="p-1 text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded"
+                className="p-1 text-purple-600 hover:text-purple-800 hover:bg-purple-100 rounded transition-colors"
                 title="Rename Chat"
               >
                 <Edit2 size={18} />
               </button>
               <button 
                 onClick={handleDeleteChat}
-                className="p-1 text-gray-500 hover:text-red-500 hover:bg-gray-200 rounded"
+                className="p-1 text-purple-600 hover:text-red-500 hover:bg-purple-100 rounded transition-colors"
                 title="Delete Chat"
               >
                 <Trash2 size={18} />
@@ -177,7 +198,7 @@ function ChatView() {
       </div>
 
       {/* Messages Area */}
-      <div className="flex-grow overflow-y-auto p-6 space-y-4 bg-gray-100">
+      <div className="flex-grow overflow-y-auto p-6 space-y-4 bg-purple-50">
         {chat.messages.map(message => (
           <MessageBubble 
             key={message.id} 
@@ -188,9 +209,9 @@ function ChatView() {
         <div ref={messagesEndRef} /> 
       </div>
 
-      {/* Prompt Input Area */}
-      <div className="p-4 border-t bg-gray-50">
-        <PromptInput onSendMessage={handleSendMessage} isLoading={isLoading} />
+      {/* Input Area */}
+      <div className="p-4 border-t border-purple-100 bg-white">
+        <PromptInput onSendMessage={handleSendMessage} isDisabled={isLoading} />
       </div>
     </div>
   );

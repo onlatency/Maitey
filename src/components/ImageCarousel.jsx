@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ChevronLeft, ChevronRight, Download, ExternalLink } from 'lucide-react';
-import { downloadImage, promptToFilename } from '../utils/imageUtils';
+import { downloadImage, generateFilenameFromPrompt } from '../utils/imageUtils';
 import toast from 'react-hot-toast';
 
 function ImageCarousel({ images, promptText }) {
@@ -26,16 +26,17 @@ function ImageCarousel({ images, promptText }) {
     if (!currentImage.url) return;
     
     // Create filename from prompt
-    let filename = 'venice-image.png';
+    let filename = 'maitey-image.png';
     if (promptText) {
-      filename = promptToFilename(promptText);
+      filename = generateFilenameFromPrompt(promptText);
     }
     
-    const success = await downloadImage(currentImage.url, filename);
-    if (success) {
-      toast.success('Image downloaded successfully');
-    } else {
+    try {
+      await downloadImage(currentImage.url, filename);
+      toast.success('Image downloaded successfully!');
+    } catch (error) {
       toast.error('Failed to download image');
+      console.error('Download error:', error);
     }
   };
 
@@ -78,13 +79,13 @@ function ImageCarousel({ images, promptText }) {
             Image {currentIndex + 1} of {images.length}
           </div>
         ) : (
-          <div className="text-xs text-gray-500">Generated image</div>
+          <div className="text-xs text-gray-500">Your Maitey creation</div>
         )}
         
         <div className="flex gap-2">
           <button 
             onClick={handleDownload} 
-            className="text-xs flex items-center gap-1 px-2 py-1 bg-gray-300 hover:bg-gray-400 rounded-md transition-colors"
+            className="text-xs flex items-center gap-1 px-2 py-1 bg-purple-200 hover:bg-purple-300 text-purple-800 rounded-md transition-colors"
             title="Download Image"
           >
             <Download size={14} />
@@ -92,7 +93,7 @@ function ImageCarousel({ images, promptText }) {
           </button>
           <button 
             onClick={() => window.open(currentImage.url, '_blank')} 
-            className="text-xs flex items-center gap-1 px-2 py-1 bg-gray-300 hover:bg-gray-400 rounded-md transition-colors"
+            className="text-xs flex items-center gap-1 px-2 py-1 bg-purple-200 hover:bg-purple-300 text-purple-800 rounded-md transition-colors"
             title="Open in New Tab"
           >
             <ExternalLink size={14} />
@@ -100,22 +101,6 @@ function ImageCarousel({ images, promptText }) {
           </button>
         </div>
       </div>
-      
-      {/* Dot indicators for multiple images */}
-      {images.length > 1 && (
-        <div className="flex justify-center mt-2 gap-1">
-          {images.map((_, index) => (
-            <button
-              key={index}
-              onClick={() => setCurrentIndex(index)}
-              className={`w-2 h-2 rounded-full transition-colors ${
-                index === currentIndex ? 'bg-blue-500' : 'bg-gray-300'
-              }`}
-              aria-label={`Go to image ${index + 1}`}
-            />
-          ))}
-        </div>
-      )}
     </div>
   );
 }

@@ -1,47 +1,92 @@
 // API configuration - Using environment variables for secure key management
 const VENICE_API_KEY = import.meta.env.VITE_VENICE_API_KEY || '';
-const API_URL = 'https://api.venice.ai/api/v1/image/generate';
+const BASE_API_URL = 'https://api.venice.ai/api/v1';
+const IMAGE_GENERATE_URL = `${BASE_API_URL}/image/generate`;
+const MODELS_URL = `${BASE_API_URL}/models`;
+const STYLES_URL = `${BASE_API_URL}/image/styles`;
 
 // Validation to ensure API key is available
 if (!VENICE_API_KEY) {
   console.error('Venice API Key not found! Make sure to set VITE_VENICE_API_KEY in your .env file');
+  // Alert in production to make the error visible to users
+  if (import.meta.env.PROD) {
+    alert('API key not found. Please check the browser console for more details.');
+  }
 }
 
 export async function generateImage(prompt, options = {}) {
+  // Log the options received to debug
+  console.log('Generate Image called with options:', options);
+  console.log('API Key available:', VENICE_API_KEY ? 'Yes' : 'No');
+  
+  // Restructure payload to exactly match the working curl example
   const payload = {
-    model: options.model || 'venice-sd35', // Defaulting to venice-sd35 as seen in screenshot, or lustify-sdxl from curl
+    model: options.model || 'venice-sd35', // Default to match ChatContext default
     prompt: prompt,
     width: options.width || 1024,
     height: options.height || 1024,
     steps: options.steps || 30,
-    safe_mode: options.safeMode === undefined ? false : options.safeMode, // API default is false
-    hide_watermark: options.hideWatermark === undefined ? true : options.hideWatermark, // API default is false
+    safe_mode: options.safeMode !== undefined ? options.safeMode : true,
+    hide_watermark: options.hideWatermark !== undefined ? options.hideWatermark : true,
     cfg_scale: options.cfgScale || 7.0,
-    style_preset: options.stylePreset || 'Photographic', // As per PRD and curl
-    negative_prompt: options.negativePrompt || 'blurry, low quality, bad anatomy, worst quality, deformed, ugly, text, watermark, signature', // Enhanced negative prompt
-    return_binary: true, // Crucial for getting image blob
+    style_preset: options.stylePreset || 'Photographic',
+    negative_prompt: options.negativePrompt || 'human', // Use simple negative prompt from example
+    return_binary: true,
     ...options.seed && { seed: options.seed } // Optional seed
   };
+  
+  // Log the final payload
+  console.log('API Payload:', payload);
 
   try {
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${VENICE_API_KEY}`,
-      },
-      body: JSON.stringify(payload),
-    });
+    console.log('Sending request to:', IMAGE_GENERATE_URL);
+    console.log('With authentication:', `Bearer ${VENICE_API_KEY.substring(0, 5)}...`);
+    
+    // Set up timeout for fetch request
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+    
+    let response;
+    try {
+      response = await fetch(IMAGE_GENERATE_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${VENICE_API_KEY}`
+        },
+        body: JSON.stringify(payload),
+        signal: controller.signal
+      });
+      
+      // Clear the timeout as the request completed
+      clearTimeout(timeoutId);
+    } catch (fetchError) {
+      clearTimeout(timeoutId);
+      if (fetchError.name === 'AbortError') {
+        console.error('Request timed out after 30 seconds');
+        throw new Error('Request timed out. Please try again later.');
+      }
+      throw fetchError;
+    }
+    
+    console.log('Response status:', response.status);
+    console.log('Response headers:', [...response.headers.entries()]);
 
     if (!response.ok) {
       let errorData;
       try {
         errorData = await response.json(); // Try to parse error response as JSON
       } catch (e) {
-        errorData = await response.text(); // Fallback to text if JSON parsing fails
+        try {
+          errorData = await response.text(); // Fallback to text if JSON parsing fails
+        } catch (textError) {
+          errorData = 'Could not read error response';
+        }
       }
       console.error('Venice API Error:', errorData);
-      throw new Error(`API request failed with status ${response.status}: ${JSON.stringify(errorData)}`);
+      console.error('Response status:', response.status);
+      console.error('Request payload:', payload);
+      throw new Error(`API request failed with status ${response.status}: ${typeof errorData === 'object' ? JSON.stringify(errorData) : errorData}`);
     }
 
     // return_binary: true means the response body is the image blob directly
@@ -51,5 +96,141 @@ export async function generateImage(prompt, options = {}) {
   } catch (error) {
     console.error('Error generating image via Venice API:', error);
     throw error; // Re-throw to be caught by the caller
+  }
+}
+
+/**
+ * Fetch available image generation models from Venice API
+ */
+export async function fetchImageModels() {
+  console.log('Fetching image models from Venice API');
+  console.log('API Key available:', VENICE_API_KEY ? 'Yes' : 'No');
+  
+  try {
+    const response = await fetch(`${MODELS_URL}?type=image`, {
+      method: 'POST', // Using POST as shown in the curl command
+      headers: {
+        'Authorization': `Bearer ${VENICE_API_KEY}`
+      },
+      body: '' // Empty body as shown in the curl command
+    });
+
+    console.log('Models API response status:', response.status);
+    
+    if (!response.ok) {
+      let errorText = await response.text();
+      console.error('Failed to fetch models:', response.status, errorText);
+      throw new Error(`Failed to fetch models: ${response.status} - ${errorText}`);
+    }
+
+    const data = await response.json();
+    console.log('Fetched models raw data:', data);
+    
+    // Format the models based on the exact response structure provided
+    let formattedModels = [];
+    
+    // Handle the specific response format shown in the sample
+    if (data.data && Array.isArray(data.data)) {
+      formattedModels = data.data.map(model => ({
+        value: model.id,
+        label: model.id.replace(/-/g, ' ').split(' ').map(word => 
+          word.charAt(0).toUpperCase() + word.slice(1)
+        ).join(' ')
+      }));
+    } else if (Array.isArray(data)) {
+      // Fallback for other possible formats
+      formattedModels = data.map(model => ({
+        value: model.id || model.model_id || model.name,
+        label: model.name || model.display_name || model.id
+      }));
+    }
+    
+    console.log('Formatted models:', formattedModels);
+    
+    // If no models were found, provide fallback defaults
+    if (formattedModels.length === 0) {
+      formattedModels = [
+        { value: 'venice-sd35', label: 'Venice SD 3.5' },
+        { value: 'lustify-sdxl', label: 'Lustify SDXL' },
+      ];
+      console.log('Using fallback models:', formattedModels);
+    }
+    
+    return formattedModels;
+  } catch (error) {
+    console.error('Error fetching image models:', error);
+    // Return fallback models on error
+    const fallbackModels = [
+      { value: 'venice-sd35', label: 'Venice SD 3.5' },
+      { value: 'lustify-sdxl', label: 'Lustify SDXL' },
+    ];
+    console.log('Using fallback models due to error:', fallbackModels);
+    return fallbackModels;
+  }
+}
+
+/**
+ * Fetch available image styles from Venice API
+ */
+export async function fetchImageStyles() {
+  console.log('Fetching image styles from Venice API');
+  console.log('API Key available:', VENICE_API_KEY ? 'Yes' : 'No');
+  
+  try {
+    const response = await fetch(STYLES_URL, {
+      method: 'GET', // Using GET as shown in the curl command
+      headers: {
+        'Authorization': `Bearer ${VENICE_API_KEY}`
+      }
+    });
+
+    console.log('Styles API response status:', response.status);
+    
+    if (!response.ok) {
+      let errorText = await response.text();
+      console.error('Failed to fetch styles:', response.status, errorText);
+      throw new Error(`Failed to fetch styles: ${response.status} - ${errorText}`);
+    }
+
+    const data = await response.json();
+    console.log('Fetched styles raw data:', data);
+    
+    // Handle the exact response format shown in the sample
+    let formattedStyles = [];
+    
+    if (data.data && Array.isArray(data.data)) {
+      // Extract styles from the data array as shown in the sample response
+      formattedStyles = data.data;
+    } else if (data.styles && Array.isArray(data.styles)) {
+      // Fallback for other possible formats
+      formattedStyles = data.styles;
+    } else if (Array.isArray(data)) {
+      // Another fallback
+      formattedStyles = data.map(style => 
+        typeof style === 'string' ? style : style.name || style.id
+      );
+    }
+    
+    console.log('Formatted styles:', formattedStyles);
+    
+    // If no styles were found, provide fallback defaults
+    if (formattedStyles.length === 0) {
+      formattedStyles = [
+        'Photographic', 'Digital Art', 'Cinematic', 'Anime', 
+        'Fantasy Art', 'Neon Punk', 'Retro', 'Abstract', 'Realistic'
+      ];
+      console.log('Using fallback styles:', formattedStyles);
+    }
+    
+    return formattedStyles;
+  } catch (error) {
+    console.error('Error fetching image styles:', error);
+    // Return fallback styles on error
+    const fallbackStyles = [
+      'Photographic', 'Digital Art', 'Cinematic', 'Anime', 
+      'Fantasy Art', 'Neon Punk', 'Retro', 'Abstract', 'Realistic'
+    ];
+    console.log('Using fallback styles due to error:', fallbackStyles);
+    return fallbackStyles;
   }
 }

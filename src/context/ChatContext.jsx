@@ -22,7 +22,7 @@ const initialState = {
 // Load state from localStorage if available
 const loadFromLocalStorage = () => {
   try {
-    const savedState = localStorage.getItem('veniceAppState');
+    const savedState = localStorage.getItem('maiteyAppState');
     if (savedState) {
       return JSON.parse(savedState);
     }
@@ -161,7 +161,7 @@ export const ChatProvider = ({ children }) => {
   // Save state to localStorage whenever it changes
   useEffect(() => {
     try {
-      localStorage.setItem('veniceAppState', JSON.stringify(state));
+      localStorage.setItem('maiteyAppState', JSON.stringify(state));
     } catch (error) {
       console.error('Error saving state to localStorage:', error);
     }
