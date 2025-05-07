@@ -61,9 +61,24 @@ function SettingsPanel() {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
+    
+    // Determine the appropriate value based on the field type
+    let processedValue;
+    if (type === 'checkbox') {
+      processedValue = checked;
+    } else if (type === 'number' || name === 'width' || name === 'height') {
+      // Ensure width and height are always numbers, even from select dropdowns
+      processedValue = parseInt(value, 10);
+    } else if (name === 'cfgScale' || name === 'steps') {
+      // Ensure numeric sliders are also numbers
+      processedValue = parseFloat(value);
+    } else {
+      processedValue = value;
+    }
+    
     setLocalSettings({
       ...localSettings,
-      [name]: type === 'checkbox' ? checked : type === 'number' ? parseFloat(value) : value
+      [name]: processedValue
     });
   };
 
@@ -161,28 +176,28 @@ function SettingsPanel() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Width</label>
                 <select
                   name="width"
-                  value={localSettings.width}
+                  value={localSettings.width.toString()}
                   onChange={handleChange}
                   className="w-full p-2 border border-purple-200 rounded-md bg-white focus:ring-2 focus:ring-purple-300 focus:border-transparent"
                 >
-                  <option value={512}>512px</option>
-                  <option value={768}>768px</option>
-                  <option value={1024}>1024px</option>
-                  <option value={1280}>1280px</option>
+                  <option value="512">512px</option>
+                  <option value="768">768px</option>
+                  <option value="1024">1024px</option>
+                  <option value="1280">1280px</option>
                 </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Height</label>
                 <select
                   name="height"
-                  value={localSettings.height}
+                  value={localSettings.height.toString()}
                   onChange={handleChange}
                   className="w-full p-2 border border-purple-200 rounded-md bg-white focus:ring-2 focus:ring-purple-300 focus:border-transparent"
                 >
-                  <option value={512}>512px</option>
-                  <option value={768}>768px</option>
-                  <option value={1024}>1024px</option>
-                  <option value={1280}>1280px</option>
+                  <option value="512">512px</option>
+                  <option value="768">768px</option>
+                  <option value="1024">1024px</option>
+                  <option value="1280">1280px</option>
                 </select>
               </div>
             </div>
@@ -230,43 +245,7 @@ function SettingsPanel() {
               </div>
             </div>
 
-            {/* Safety Mode */}
-            <div className="flex items-center justify-between">
-              <label className="text-sm font-medium text-gray-700 flex items-center">
-                <span>Safety Mode</span>
-                <div className="group relative ml-1">
-                  <Info size={14} className="text-gray-400 cursor-help" />
-                  <div className="hidden group-hover:block absolute left-0 bottom-full mb-2 p-2 bg-gray-800 text-white text-xs rounded shadow-lg w-48">
-                    Filters out NSFW content. May reduce quality for some prompts.
-                  </div>
-                </div>
-              </label>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  name="safeMode"
-                  checked={localSettings.safeMode}
-                  onChange={handleChange}
-                  className="sr-only peer"
-                />
-                <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-600"></div>
-              </label>
-            </div>
-
-            {/* Hide Watermark */}
-            <div className="flex items-center justify-between">
-              <label className="text-sm font-medium text-gray-700">Hide Watermark</label>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  name="hideWatermark"
-                  checked={localSettings.hideWatermark}
-                  onChange={handleChange}
-                  className="sr-only peer"
-                />
-                <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-600"></div>
-              </label>
-            </div>
+            {/* Safety Mode and Hide Watermark settings removed */}
 
             {/* Negative Prompt */}
             <div>

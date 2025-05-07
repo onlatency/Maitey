@@ -19,20 +19,33 @@ export async function generateImage(prompt, options = {}) {
   console.log('Generate Image called with options:', options);
   console.log('API Key available:', VENICE_API_KEY ? 'Yes' : 'No');
   
-  // Restructure payload to exactly match the working curl example
+  // Ensure numeric parameters are properly converted
+  const ensureNumber = (value, defaultValue) => {
+    if (value === undefined || value === null) return defaultValue;
+    const parsed = parseInt(value, 10);
+    return isNaN(parsed) ? defaultValue : parsed;
+  };
+
+  const ensureFloat = (value, defaultValue) => {
+    if (value === undefined || value === null) return defaultValue;
+    const parsed = parseFloat(value);
+    return isNaN(parsed) ? defaultValue : parsed;
+  };
+
+  // Restructure payload to exactly match the working curl example with correct types
   const payload = {
     model: options.model || 'venice-sd35', // Default to match ChatContext default
     prompt: prompt,
-    width: options.width || 1024,
-    height: options.height || 1024,
-    steps: options.steps || 30,
-    safe_mode: options.safeMode !== undefined ? options.safeMode : true,
-    hide_watermark: options.hideWatermark !== undefined ? options.hideWatermark : true,
-    cfg_scale: options.cfgScale || 7.0,
+    width: ensureNumber(options.width, 1024),
+    height: ensureNumber(options.height, 1024),
+    steps: ensureNumber(options.steps, 30),
+    safe_mode: options.safeMode !== undefined ? Boolean(options.safeMode) : true,
+    hide_watermark: options.hideWatermark !== undefined ? Boolean(options.hideWatermark) : true,
+    cfg_scale: ensureFloat(options.cfgScale, 7.0),
     style_preset: options.stylePreset || 'Photographic',
-    negative_prompt: options.negativePrompt || 'human', // Use simple negative prompt from example
+    negative_prompt: options.negativePrompt || 'blurry, low quality, bad anatomy, worst quality, deformed, ugly, text, watermark, signature',
     return_binary: true,
-    ...options.seed && { seed: options.seed } // Optional seed
+    ...options.seed && { seed: ensureNumber(options.seed, Math.floor(Math.random() * 1000000)) } // Optional seed
   };
   
   // Log the final payload
@@ -107,12 +120,13 @@ export async function fetchImageModels() {
   console.log('API Key available:', VENICE_API_KEY ? 'Yes' : 'No');
   
   try {
+    // Using GET request instead of POST for models endpoint
     const response = await fetch(`${MODELS_URL}?type=image`, {
-      method: 'POST', // Using POST as shown in the curl command
+      method: 'GET',
       headers: {
         'Authorization': `Bearer ${VENICE_API_KEY}`
-      },
-      body: '' // Empty body as shown in the curl command
+      }
+      // No body needed for GET request
     });
 
     console.log('Models API response status:', response.status);
@@ -129,21 +143,51 @@ export async function fetchImageModels() {
     // Format the models based on the exact response structure provided
     let formattedModels = [];
     
-    // Handle the specific response format shown in the sample
+    // More comprehensive handling of various possible response formats
     if (data.data && Array.isArray(data.data)) {
+      // Primary expected format from Venice API
       formattedModels = data.data.map(model => ({
-        value: model.id,
-        label: model.id.replace(/-/g, ' ').split(' ').map(word => 
-          word.charAt(0).toUpperCase() + word.slice(1)
-        ).join(' ')
+        value: model.id || model.model_id || model.name,
+        label: (model.display_name || model.name || model.id || '').replace(/-/g, ' ')
+          .split(' ')
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(' ')
+      }));
+    } else if (data.models && Array.isArray(data.models)) {
+      // Alternative format that might be returned
+      formattedModels = data.models.map(model => ({
+        value: model.id || model.model_id || model.name,
+        label: (model.display_name || model.name || model.id || '').replace(/-/g, ' ')
+          .split(' ')
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(' ')
       }));
     } else if (Array.isArray(data)) {
-      // Fallback for other possible formats
-      formattedModels = data.map(model => ({
-        value: model.id || model.model_id || model.name,
-        label: model.name || model.display_name || model.id
-      }));
+      // Direct array format
+      formattedModels = data.map(model => {
+        // Handle if model is just a string
+        if (typeof model === 'string') {
+          return {
+            value: model,
+            label: model.replace(/-/g, ' ')
+              .split(' ')
+              .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+              .join(' ')
+          };
+        }
+        // Handle if model is an object
+        return {
+          value: model.id || model.model_id || model.name,
+          label: (model.display_name || model.name || model.id || '').replace(/-/g, ' ')
+            .split(' ')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ')
+        };
+      });
     }
+    
+    // Log parsed models list
+    console.log('Parsed models from API response:', formattedModels);
     
     console.log('Formatted models:', formattedModels);
     

@@ -27,7 +27,7 @@ function StatusBar() {
         <div className="flex items-center gap-2">
           <span className="font-medium">Maitey Image Chat</span>
           <span className="text-xs opacity-70">•</span>
-          <span className="text-xs opacity-70">Venice API</span>
+          <span className="text-xs opacity-70">System Status</span>
           {apiStatus === 'connected' ? (
             <Wifi size={12} className="text-green-400" />
           ) : (
