@@ -12,7 +12,6 @@
   to = "/index.html"
   status = 200
 
-# The environment variable is now managed in the Netlify UI
-# This ensures the API key is correctly passed to the client
-[context.production.environment]
-  VITE_VENICE_API_KEY = "${VITE_VENICE_API_KEY}"
+# Remove environment variable from toml file
+# Environment variables should be set only in the Netlify UI
+# and not referenced here to avoid string interpolation issues

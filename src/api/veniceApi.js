@@ -39,8 +39,8 @@ export async function generateImage(prompt, options = {}) {
     width: ensureNumber(options.width, 1024),
     height: ensureNumber(options.height, 1024),
     steps: ensureNumber(options.steps, 30),
-    safe_mode: options.safeMode !== undefined ? Boolean(options.safeMode) : true,
-    hide_watermark: options.hideWatermark !== undefined ? Boolean(options.hideWatermark) : true,
+    safe_mode: true, // Always set safe_mode to true
+    hide_watermark: true, // Always set hide_watermark to true
     cfg_scale: ensureFloat(options.cfgScale, 7.0),
     style_preset: options.stylePreset || 'Photographic',
     negative_prompt: options.negativePrompt || 'blurry, low quality, bad anatomy, worst quality, deformed, ugly, text, watermark, signature',
