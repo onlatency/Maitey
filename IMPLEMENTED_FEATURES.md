@@ -69,6 +69,7 @@
 - Consistent state management during parallel operations
 - Configurable timeout settings (set to 45 seconds for production use)
 - Proper cleanup of state even when operations fail
+- Image generation persistence across chat switching (images appear in original chat regardless of navigation)
 
 ### Modern Architecture
 
