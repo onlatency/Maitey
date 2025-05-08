@@ -57,9 +57,9 @@ function ChatSelector() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex flex-col p-2 border-b border-purple-100">
-        <div className="flex justify-between items-center mb-2">
-          <h2 className="font-bold text-purple-800">MAITEYCHAT</h2>
+      <div className="flex flex-col p-3 border-b border-purple-100">
+        <div className="flex justify-between items-center mb-3">
+          <h2 className="font-bold text-lg text-purple-800">MAITEYCHAT</h2>
           <div className="flex items-center space-x-2">
             <button
               onClick={toggleMultiSelectMode}
@@ -93,7 +93,7 @@ function ChatSelector() {
       </div>
 
       <div className="flex-grow overflow-y-auto">
-        <ul className="space-y-1 p-2">
+        <ul className="space-y-2 p-3">
           {chats.length === 0 ? (
             <li className="text-gray-200 text-sm p-3">No chats yet. Create one to get started!</li>
           ) : (

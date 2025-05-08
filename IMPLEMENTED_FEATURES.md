@@ -55,6 +55,8 @@
 - Modernized UI elements with consistent styling and visual cues
 - Improved chat list item layout with proper spacing and alignment
 - Updated application title and branding
+- Interactive image size selector with draggable corners and real-time feedback
+- Draggable settings panels with customizable order via toggle button
 
 ## Technical Improvements
 
