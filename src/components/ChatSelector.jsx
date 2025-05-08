@@ -100,7 +100,7 @@ function ChatSelector() {
             chats.map(chat => (
               <li key={chat.id}>
                 <div 
-                  className={`relative flex items-center w-full rounded-md transition-colors ${
+                  className={`relative flex items-center justify-between w-full rounded-md transition-colors ${
                     isChatSelected(chat.id)
                       ? 'bg-pink-100 text-purple-800' 
                       : activeChatId === chat.id
@@ -108,45 +108,45 @@ function ChatSelector() {
                         : 'hover:bg-purple-100 text-purple-700'
                   }`}
                 >
-                  {/* Checkbox for multi-select mode */}
-                  {multiSelectMode && (
-                    <div 
-                      className="absolute left-2 top-1/2 transform -translate-y-1/2 z-10"
-                      onClick={(e) => toggleChatSelection(chat.id, e)}
-                    >
-                      <div className={`w-4 h-4 rounded border flex items-center justify-center ${
-                        isChatSelected(chat.id) 
-                          ? 'bg-purple-600 border-purple-600' 
-                          : 'border-gray-300'
-                      }`}>
-                        {isChatSelected(chat.id) && <Check size={12} className="text-white" />}
+                  <div className="flex items-center flex-grow min-w-0 pr-1">
+                    {/* Checkbox for multi-select mode */}
+                    {multiSelectMode && (
+                      <div 
+                        className="ml-2 mr-1 flex-shrink-0"
+                        onClick={(e) => toggleChatSelection(chat.id, e)}
+                      >
+                        <div className={`w-4 h-4 rounded border flex items-center justify-center ${
+                          isChatSelected(chat.id) 
+                            ? 'bg-purple-600 border-purple-600' 
+                            : 'border-gray-300'
+                        }`}>
+                          {isChatSelected(chat.id) && <Check size={12} className="text-white" />}
+                        </div>
                       </div>
-                    </div>
-                  )}
-                  
-                  {/* Chat button */}
-                  <button
-                    onClick={() => setActiveChat(chat.id)}
-                    className={`w-full text-left px-3 py-2.5 rounded-md flex items-center space-x-3 ${
-                      multiSelectMode ? 'pl-8' : ''
-                    }`}
-                  >
-                    <MessageSquare size={20} className="flex-shrink-0" />
-                    <div className="flex flex-col overflow-hidden">
-                      <span className="truncate font-medium">{chat.name}</span>
-                      <span className="text-xs opacity-75 truncate">
-                        {chat.messages.length > 0 
-                          ? shortenPrompt(chat.messages[0].text, 30)
-                          : 'Empty chat'}
-                      </span>
-                    </div>
-                  </button>
+                    )}
+                    
+                    {/* Chat info */}
+                    <button
+                      onClick={() => setActiveChat(chat.id)}
+                      className={`flex-grow min-w-0 text-left px-3 py-2.5 rounded-md flex items-center space-x-3`}
+                    >
+                      <MessageSquare size={20} className="flex-shrink-0" />
+                      <div className="flex flex-col overflow-hidden flex-grow min-w-0">
+                        <span className="truncate font-medium">{chat.name}</span>
+                        <span className="text-xs opacity-75 truncate">
+                          {chat.messages.length > 0 
+                            ? shortenPrompt(chat.messages[0].text, 30)
+                            : 'Empty chat'}
+                        </span>
+                      </div>
+                    </button>
+                  </div>
                   
                   {/* Delete button - only shown in non-multi-select mode */}
                   {!multiSelectMode && (
                     <button
                       onClick={(e) => handleDeleteChat(chat.id, e)}
-                      className="p-1.5 rounded-md text-inherit opacity-70 hover:opacity-100 hover:bg-red-100 hover:text-red-600 mr-1"
+                      className="p-1.5 mx-2 flex-shrink-0 rounded-md text-inherit opacity-70 hover:opacity-100 hover:bg-red-100 hover:text-red-600"
                       title="Delete chat"
                     >
                       <Trash2 size={16} />
