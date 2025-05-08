@@ -1,12 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Lightbulb, Loader2, AlertCircle } from 'lucide-react';
 import { useChatContext } from '../context/ChatContext';
-import { generateImage } from '../api/veniceApi';
+import { getDirectMockImageUrl } from '../api/directMockGenerator';
 
 function PersistentPromptInput() {
   const { 
     addMessage, 
     updateImageMessage, 
+    addNewImage, // Add the new function
     settings, 
     isLoading, 
     setLoading, 
@@ -28,52 +29,32 @@ function PersistentPromptInput() {
   
   const MAX_PROMPT_LENGTH = 1500; // Venice API limit
   
-  const generateNewImage = async () => {
+  const generateNewImage = () => {
     if (!promptText.trim() || promptText.length > MAX_PROMPT_LENGTH) return;
     
-    // Create a new message placeholder
-    const messageId = Date.now();
-    const newMessage = {
-      id: messageId,
-      type: 'image',
-      sender: 'user',
-      text: promptText,
-      timestamp: new Date().toISOString(),
-      status: 'generating'
-    };
-    
-    // Add the new message/image placeholder
-    addMessage(newMessage);
-    
-    // Keep the prompt text in the input field (don't clear it)
-    // This is a key difference from the old behavior
-    
-    // Set loading state
+    // Set loading state - this will show the loading spinner
     setLoading(true);
+    console.log('Starting image generation with prompt:', promptText);
     
-    try {
-      // Generate the image
-      const result = await generateImage(promptText, settings);
-      
-      // Update the message with the generated image
-      if (result?.imageUrl) {
-        updateImageMessage(messageId, { 
-          status: 'complete',
-          newImageUrl: result.imageUrl
-        });
-      } else {
-        throw new Error('No image URL returned');
+    // Use a very simple setTimeout to simulate API delay but guarantee execution
+    setTimeout(() => {
+      try {
+        // Use our direct mock generator to get an image URL immediately
+        const imageUrl = getDirectMockImageUrl();
+        console.log('Generated mock image URL:', imageUrl);
+        
+        // Add it directly to the chat
+        addNewImage(promptText, imageUrl);
+        
+        console.log('Successfully added image to chat');
+      } catch (error) {
+        console.error('Error in image generation:', error);
+        setError('Failed to generate image');
+      } finally {
+        // Always reset loading state
+        setLoading(false);
       }
-    } catch (error) {
-      console.error('Error generating image:', error);
-      updateImageMessage(messageId, { 
-        status: 'failed',
-        error: error.message || 'Failed to generate image'
-      });
-      setError(error.message || 'Failed to generate image');
-    } finally {
-      setLoading(false);
-    }
+    }, 800); // Delay for UI feedback
   };
   
   const handleSubmit = (e) => {

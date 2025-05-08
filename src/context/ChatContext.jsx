@@ -122,6 +122,7 @@ const chatReducer = (state, action) => {
         };
       }
       
+      console.log('Updating image message with:', action.payload);
       // Otherwise, perform a regular update
       return { 
         ...state, 
@@ -222,6 +223,22 @@ export const useChatContext = () => useContext(ChatContext);
 export const ChatProvider = ({ children }) => {
   const [state, dispatch] = useReducer(chatReducer, loadFromLocalStorage());
   
+  // Create a default chat if none exists
+  useEffect(() => {
+    if (state.chats.length === 0) {
+      const newChatId = 1;
+      const newChat = {
+        id: newChatId,
+        name: `New Chat ${newChatId}`,
+        messages: []
+      };
+      dispatch({ type: ACTIONS.ADD_CHAT, payload: newChat });
+    } else if (!state.activeChatId && state.chats.length > 0) {
+      // If there are chats but no active chat, set the first one as active
+      dispatch({ type: ACTIONS.SET_ACTIVE_CHAT, payload: state.chats[0].id });
+    }
+  }, []);
+  
   // Save state to localStorage whenever it changes
   useEffect(() => {
     try {
@@ -268,7 +285,24 @@ export const ChatProvider = ({ children }) => {
   
   // Update an image message in the active chat
   const updateImageMessage = (messageId, updates) => {
+    console.log('Updating image message:', { messageId, updates });
     dispatch({ type: ACTIONS.UPDATE_IMAGE_MESSAGE, payload: { messageId, updates } });
+  };
+  
+  // Add a new image directly to a chat (simpler than updateImageMessage)
+  const addNewImage = (prompt, imageUrl) => {
+    const newMessage = {
+      id: Date.now(),
+      type: 'image',
+      sender: 'user',
+      text: prompt,
+      timestamp: new Date().toISOString(),
+      status: 'complete',
+      images: [{ url: imageUrl, timestamp: new Date().toISOString() }]
+    };
+    
+    console.log('Adding new image message directly:', newMessage);
+    addMessage(newMessage);
   };
   
   // Update settings
@@ -325,6 +359,7 @@ export const ChatProvider = ({ children }) => {
     setActiveChat,
     addMessage,
     updateImageMessage,
+    addNewImage, // Add the new direct image addition function
     updateSettings,
     setLoading,
     setError,

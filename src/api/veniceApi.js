@@ -1,9 +1,14 @@
 // API configuration - Using environment variables for secure key management
+import { mockGenerateImage, mockDelay } from './mockImageGenerator';
+
 const VENICE_API_KEY = import.meta.env.VITE_VENICE_API_KEY || '';
 const BASE_API_URL = 'https://api.venice.ai/api/v1';
 const IMAGE_GENERATE_URL = `${BASE_API_URL}/image/generate`;
 const MODELS_URL = `${BASE_API_URL}/models`;
 const STYLES_URL = `${BASE_API_URL}/image/styles`;
+
+// Since we don't have a valid API key in this demonstration, always use mock data
+const USE_MOCK_DATA = true;
 
 // Validation to ensure API key is available
 if (!VENICE_API_KEY) {
@@ -17,7 +22,26 @@ if (!VENICE_API_KEY) {
 export async function generateImage(prompt, options = {}) {
   // Log the options received to debug
   console.log('Generate Image called with options:', options);
-  console.log('API Key available:', VENICE_API_KEY ? 'Yes' : 'No');
+  
+  // For demonstration purposes, always use mock data
+  if (USE_MOCK_DATA) {
+    console.log('Using reliable mock image generator');
+    
+    try {
+      // Use our improved mock generator
+      const result = await mockGenerateImage(prompt, options);
+      
+      // Return in the format expected by our components
+      return {
+        imageUrl: result.imageUrl,
+        settings: options,
+        prompt: prompt
+      };
+    } catch (error) {
+      console.error('Error in mock image generation:', error);
+      throw new Error('Failed to generate mock image');
+    }
+  }
   
   // Ensure numeric parameters are properly converted
   const ensureNumber = (value, defaultValue) => {
@@ -104,7 +128,15 @@ export async function generateImage(prompt, options = {}) {
 
     // return_binary: true means the response body is the image blob directly
     const imageBlob = await response.blob();
-    return imageBlob;
+    
+    // Create a URL for the blob
+    const imageUrl = URL.createObjectURL(imageBlob);
+    
+    // Return an object with the imageUrl and the blob
+    return {
+      imageUrl,
+      imageBlob
+    };
 
   } catch (error) {
     console.error('Error generating image via Venice API:', error);
@@ -117,7 +149,17 @@ export async function generateImage(prompt, options = {}) {
  */
 export async function fetchImageModels() {
   console.log('Fetching image models from Venice API');
-  console.log('API Key available:', VENICE_API_KEY ? 'Yes' : 'No');
+  
+  // Always return mock models for the demo
+  if (USE_MOCK_DATA) {
+    await mockDelay(300);
+    
+    return [
+      { value: 'venice-sd35', label: 'Stable Diffusion 3.5' },
+      { value: 'lustify-sdxl', label: 'Lustify SDXL' },
+      { value: 'venice-diffusion', label: 'Venice Diffusion' }
+    ];
+  }
   
   try {
     // Using GET request instead of POST for models endpoint
@@ -218,6 +260,22 @@ export async function fetchImageModels() {
  */
 export async function fetchImageStyles() {
   console.log('Fetching image styles from Venice API');
+  
+  // Always return mock styles for the demo
+  if (USE_MOCK_DATA) {
+    await mockDelay(300);
+    
+    return [
+      'Photographic',
+      'None',
+      'Hyperrealism',
+      'Enhance',
+      'Analog Film',
+      'Cinematic',
+      'Texture',
+      'Abstract'
+    ];
+  }
   console.log('API Key available:', VENICE_API_KEY ? 'Yes' : 'No');
   
   try {

@@ -20,12 +20,12 @@ Transform the Venice Image Chat application into a professional tool for media c
   - Keep existing settings (Model, Style, Steps, Adherence)
   - Add "Negative Prompts" text input field
   - Implement image size controls with presets:
-    - Square (Default)
-    - Landscape (3:2)
-    - Cinema (16:9)
-    - Tall (9:16)
-    - Portrait (2:3)
-    - Instagram (4:5)
+    - Square (Default) - 1024x1024
+    - Landscape (3:2) - 1264x848
+    - Cinema (16:9) - 1280x720
+    - Tall (9:16) - 720x1280
+    - Portrait (2:3) - 848x1264
+    - Instagram (4:5) - 1011x1264
     - Custom (with width/height input fields)
 
 ### 2. Main Panel - Image Gallery

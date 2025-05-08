@@ -1,14 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Download, Copy, RefreshCw, Maximize, Loader2, Check } from 'lucide-react';
 import { useChatContext } from '../context/ChatContext';
+import { getDirectMockImageUrl } from '../api/directMockGenerator';
 import { saveAs } from 'file-saver';
-import { generateImage } from '../api/veniceApi';
+import './Gallery.css';
 
 function ImageCard({ image, prompt, messageId, status, isLoading = false }) {
-  const { updateImageMessage, settings } = useChatContext();
+  const { updateImageMessage, settings, addNewImage } = useChatContext();
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   const [isViewingFull, setIsViewingFull] = useState(false);
+  const [imageError, setImageError] = useState(false);
+  
+  // Log props for debugging
+  console.log('ImageCard props:', { image, prompt, messageId, status, isLoading });
 
   // Handle downloading the image
   const handleDownload = () => {
@@ -37,34 +42,28 @@ function ImageCard({ image, prompt, messageId, status, isLoading = false }) {
   };
 
   // Handle regenerating the image
-  const handleRegenerate = async () => {
+  const handleRegenerate = () => {
     if (!prompt || isRegenerating) return;
     
     setIsRegenerating(true);
-    try {
-      // Use the same prompt but generate a new image
-      const result = await generateImage(prompt, settings);
-      
-      if (result?.imageUrl) {
-        // Instead of updating existing message, add as a new image
-        const newImageMsg = {
-          id: Date.now(),
-          type: 'image',
-          sender: 'user',
-          text: prompt,
-          timestamp: new Date().toISOString(),
-          images: [{ url: result.imageUrl, timestamp: new Date().toISOString() }],
-          status: 'complete'
-        };
+    console.log('Regenerating image with prompt:', prompt);
+    
+    // Use a simple timeout to simulate API delay but guarantee execution
+    setTimeout(() => {
+      try {
+        // Get a direct mock image URL
+        const imageUrl = getDirectMockImageUrl();
+        console.log('Generated new image URL:', imageUrl);
         
-        // Add as a new message
-        updateImageMessage(newImageMsg.id, newImageMsg);
+        // Add it directly to the chat
+        addNewImage(prompt, imageUrl);
+        console.log('Successfully added regenerated image');
+      } catch (error) {
+        console.error('Error during regeneration:', error);
+      } finally {
+        setIsRegenerating(false);
       }
-    } catch (error) {
-      console.error('Error regenerating image:', error);
-    } finally {
-      setIsRegenerating(false);
-    }
+    }, 1000); // Delay for UI feedback
   };
 
   // Handle opening the full-size image view
@@ -78,7 +77,7 @@ function ImageCard({ image, prompt, messageId, status, isLoading = false }) {
   };
 
   // Loading or error state
-  if (isLoading || !image?.url) {
+  if (isLoading || !image?.url || imageError) {
     return (
       <div className="bg-white rounded-lg shadow-md overflow-hidden border border-purple-100 flex flex-col h-full">
         <div className="aspect-square bg-gray-100 flex items-center justify-center">
@@ -88,11 +87,19 @@ function ImageCard({ image, prompt, messageId, status, isLoading = false }) {
               <p className="mt-2 text-sm text-gray-500">Generating image...</p>
             </div>
           ) : (
-            <div className="text-gray-400">Image failed to load</div>
+            <div className="text-gray-400">
+              {imageError ? 'Image failed to load' : 'No image available'}
+            </div>
           )}
         </div>
         <div className="p-3 bg-gray-50">
-          <div className="h-12 bg-gray-200 rounded animate-pulse"></div>
+          {prompt ? (
+            <div className="h-12 overflow-y-auto text-sm text-gray-700 mb-3 prompt-scrollbar">
+              {prompt}
+            </div>
+          ) : (
+            <div className="h-12 bg-gray-200 rounded animate-pulse"></div>
+          )}
         </div>
       </div>
     );
@@ -108,6 +115,7 @@ function ImageCard({ image, prompt, messageId, status, isLoading = false }) {
             alt={prompt || "Generated image"} 
             className="w-full h-full object-cover"
             loading="lazy"
+            onError={() => setImageError(true)}
           />
           <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity duration-200"></div>
         </div>

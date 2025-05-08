@@ -21,7 +21,7 @@ function Layout() {
       {/* Left Panel - Chats and Settings */}
       <div className="w-64 flex flex-col bg-cream-100 border-r border-purple-100">
         {/* Chat List Section */}
-        <div className="flex-grow flex flex-col h-0">
+        <div className="h-1/2 overflow-y-auto">
           <ChatSelector />
           
           {/* New Chat Button */}
@@ -36,10 +36,9 @@ function Layout() {
           </div>
         </div>
         
-        {/* Settings Panel */}
-        {activeChatId && (
-          <div className="p-3 space-y-4 bg-cream-50 border-t border-purple-100 overflow-y-auto max-h-[50vh]">
-            <h3 className="font-medium text-purple-800">Image Settings</h3>
+        {/* Settings Panel - Always show settings panel */}
+        <div className="h-1/2 p-3 space-y-4 bg-cream-50 border-t border-purple-100 overflow-y-auto">
+          <h3 className="font-medium text-purple-800">Image Settings</h3>
             
             {/* Model Selection */}
             <div>
@@ -97,7 +96,6 @@ function Layout() {
             {/* Negative Prompts */}
             <NegativePromptInput />
           </div>
-        )}
       </div>
       
       {/* Main Content Area */}
