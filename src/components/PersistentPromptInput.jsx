@@ -33,32 +33,49 @@ function PersistentPromptInput() {
     
     console.log('Starting image generation with prompt:', promptText);
     
+    // Store the current prompt before clearing it
+    const currentPrompt = promptText;
+    
+    // Clear input immediately to provide responsive feedback
+    setPromptText('');
+    
     // Set local submitting state to true to disable only this button
     setIsSubmitting(true);
     
+    // Set a guaranteed timeout to re-enable the button in case of any errors
+    // This ensures the button is never permanently disabled
+    const buttonTimeout = setTimeout(() => {
+      setIsSubmitting(false);
+      console.log('Button re-enabled by safety timeout');
+    }, 5000); // Ensure button becomes enabled again after 5 seconds no matter what
+    
     try {
-      // Use the real Venice API via the context function
-      // The addNewImage function now handles all the API interaction
-      // Don't await - we want to fire and forget, so the button becomes active again
-      addNewImage(promptText)
-        .catch(error => {
-          console.error('Error in image generation:', error);
-          setError('Failed to generate image: ' + error.message);
-        })
-        .finally(() => {
-          // Always reset the submitting state after a brief delay
-          setTimeout(() => {
+      console.log('Image generation request submitted for:', currentPrompt);
+      
+      // Use a separate try/catch for the addNewImage function
+      try {
+        // Fire and forget, but with proper error handling
+        addNewImage(currentPrompt)
+          .catch(error => {
+            console.error('Error in image generation:', error);
+            setError('Failed to generate image: ' + (error.message || 'Unknown error'));
+          })
+          .finally(() => {
+            // Always clear the timeout and reset the button state
+            clearTimeout(buttonTimeout);
             setIsSubmitting(false);
-          }, 1000); // Brief delay for feedback
-        });
-      
-      // Clear input immediately after request is sent
-      setPromptText('');
-      
-      console.log('Image generation request submitted');
-    } catch (error) {
-      console.error('Error requesting image generation:', error);
-      setError('Failed to start image generation');
+            console.log('Button re-enabled after image generation attempt');
+          });
+      } catch (innerError) {
+        console.error('Error calling addNewImage:', innerError);
+        setError('Failed to start image generation: ' + (innerError.message || 'Unknown error'));
+        clearTimeout(buttonTimeout);
+        setIsSubmitting(false);
+      }
+    } catch (outerError) {
+      console.error('Unexpected error in generateNewImage:', outerError);
+      setError('Unexpected error: ' + (outerError.message || 'Unknown error'));
+      clearTimeout(buttonTimeout);
       setIsSubmitting(false);
     }
   };

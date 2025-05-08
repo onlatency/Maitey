@@ -242,32 +242,11 @@ export const useChatContext = () => useContext(ChatContext);
 export const ChatProvider = ({ children }) => {
   const [state, dispatch] = useReducer(chatReducer, loadFromLocalStorage());
   
-  // Create a default chat if none exists
-  useEffect(() => {
-    if (state.chats.length === 0) {
-      // Generate a unique ID for the initial chat
-      const timestamp = Date.now();
-      const uniqueId = timestamp;
-      lastGeneratedIdRef.current = uniqueId + 1;
-      
-      const newChat = {
-        id: uniqueId,
-        name: `New Chat`,
-        messages: []
-      };
-      console.log('Creating initial chat with unique ID:', uniqueId);
-      dispatch({ type: ACTIONS.ADD_CHAT, payload: newChat });
-    } else if (!state.activeChatId && state.chats.length > 0) {
-      // If there are chats but no active chat, set the first one as active
-      dispatch({ type: ACTIONS.SET_ACTIVE_CHAT, payload: state.chats[0].id });
-    }
-  }, []);
-  
-  // Monitor chat changes to ensure we always have at least one chat
-  // But we'll use a ref to track the last generated ID to avoid duplicates
+  // Monitor and create chats as needed - unified chat creation logic
   const lastGeneratedIdRef = React.useRef(0);
   
   useEffect(() => {
+    // Case 1: No chats exist but we need to create one
     if (state.chats.length === 0) {
       // Generate a guaranteed unique ID based on timestamp and a counter
       const timestamp = Date.now();
@@ -281,16 +260,22 @@ export const ChatProvider = ({ children }) => {
       };
       console.log('Creating new chat with unique ID:', uniqueId);
       
-      // Add the chat first, then set it as active in separate actions
+      // Add the chat first
       dispatch({ type: ACTIONS.ADD_CHAT, payload: newChat });
       
-      // Important: Set the new chat as active - this was missing!
+      // Then set it as active with a small delay to ensure the ADD_CHAT completes
       setTimeout(() => {
         console.log('Setting newly created chat as active:', uniqueId);
         dispatch({ type: ACTIONS.SET_ACTIVE_CHAT, payload: uniqueId });
-      }, 0); // Use setTimeout to ensure the ADD_CHAT action completes first
+      }, 10);
+    } 
+    // Case 2: Chats exist but no active chat is selected
+    else if (!state.activeChatId && state.chats.length > 0) {
+      // If there are chats but no active chat, set the first one as active
+      console.log('Setting first chat as active:', state.chats[0].id);
+      dispatch({ type: ACTIONS.SET_ACTIVE_CHAT, payload: state.chats[0].id });
     }
-  }, [state.chats.length]);
+  }, [state.chats.length, state.activeChatId]);
   
   // Save state to localStorage whenever it changes
   useEffect(() => {
