@@ -34,8 +34,8 @@ function ImageGallery() {
     return false;
   }) || [];
   
-  // Sort messages by timestamp - newest first
-  imageMessages.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  // Sort messages by timestamp - oldest first (chronological order)
+  imageMessages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
   
   console.log('Filtered Image Messages:', imageMessages);
 

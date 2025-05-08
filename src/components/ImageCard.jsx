@@ -1,17 +1,32 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Download, Copy, RefreshCw, Maximize, Loader2, Check, AlertCircle, Trash2, Clock } from 'lucide-react';
+import { Download, Copy, RefreshCw, Maximize, Loader2, Check, AlertCircle, Trash2, Clock, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { useChatContext } from '../context/ChatContext';
 import { saveAs } from 'file-saver';
 import './Gallery.css';
 
 function ImageCard({ image, prompt, messageId, status, isLoading = false, error = null }) {
+  // Get all images from the active chat to enable navigation
   const { updateImageMessage, settings, addNewImage, getActiveChat, deleteMessage } = useChatContext();
   const activeChat = getActiveChat();
+  
+  // Extract all image messages from active chat for navigation
+  const allImageMessages = activeChat?.messages?.filter(msg => {
+    if (msg.type !== 'image') return false;
+    if (msg.status === 'error') return false;
+    if (msg.images?.length > 0 || msg.url) return true;
+    return false;
+  }) || [];
+  
+  // For navigation in full-size view - find current image index
+  const currentImageIndex = messageId ? allImageMessages.findIndex(msg => msg.id === messageId) : -1;
+  // States for this component
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   const [isViewingFull, setIsViewingFull] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [imageSrc, setImageSrc] = useState(image?.url || null);
+  const [fullViewImageSrc, setFullViewImageSrc] = useState(null); // Separate state for fullview image
+  const [currentViewIndex, setCurrentViewIndex] = useState(0); // Track current position in fullview
   const [attempts, setAttempts] = useState(0);
   
   // Log props for debugging
@@ -73,12 +88,68 @@ function ImageCard({ image, prompt, messageId, status, isLoading = false, error 
   // Handle opening the full-size image view
   const handleViewFull = () => {
     setIsViewingFull(true);
+    setFullViewImageSrc(imageSrc); // Initialize fullview with the card's image
+    setCurrentViewIndex(currentImageIndex); // Initialize with correct position
   };
 
   // Close the full-size image view
   const handleCloseFullView = () => {
     setIsViewingFull(false);
   };
+  
+  // Navigate to previous image in full-size view
+  const handlePreviousImage = (e) => {
+    e.stopPropagation();
+    const newIndex = currentViewIndex - 1;
+    if (newIndex < 0 || allImageMessages.length <= 1) return;
+    
+    const prevMessage = allImageMessages[newIndex];
+    if (!prevMessage) return;
+    
+    // Get the image URL from the message
+    const prevImageUrl = prevMessage.images?.[0]?.url || prevMessage.url;
+    if (!prevImageUrl) return;
+    
+    // Update only the fullview image state
+    setFullViewImageSrc(prevImageUrl);
+    setCurrentViewIndex(newIndex);
+  };
+  
+  // Navigate to next image in full-size view
+  const handleNextImage = (e) => {
+    e.stopPropagation();
+    const newIndex = currentViewIndex + 1;
+    if (newIndex >= allImageMessages.length) return;
+    
+    const nextMessage = allImageMessages[newIndex];
+    if (!nextMessage) return;
+    
+    // Get the image URL from the message
+    const nextImageUrl = nextMessage.images?.[0]?.url || nextMessage.url;
+    if (!nextImageUrl) return;
+    
+    // Update only the fullview image state
+    setFullViewImageSrc(nextImageUrl);
+    setCurrentViewIndex(newIndex);
+  };
+  
+  // Handle keyboard navigation
+  useEffect(() => {
+    if (!isViewingFull) return;
+    
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        handleCloseFullView();
+      } else if (e.key === 'ArrowLeft') {
+        handlePreviousImage(e);
+      } else if (e.key === 'ArrowRight') {
+        handleNextImage(e);
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isViewingFull, currentViewIndex, allImageMessages]);  // Updated dependencies
   
   // Delete the image
   const handleDeleteImage = (e) => {
@@ -290,24 +361,55 @@ function ImageCard({ image, prompt, messageId, status, isLoading = false, error 
         </div>
       </div>
       
-      {/* Full-size image modal */}
+      {/* Full-size image modal with navigation */}
       {isViewingFull && (
-        <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4" onClick={handleCloseFullView}>
-          <div className="max-w-screen-xl max-h-screen-90 relative" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 p-4" onClick={handleCloseFullView}>
+          <div className="max-w-screen-xl max-h-screen-90 relative w-full flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+            {/* Previous button */}
+            {currentViewIndex > 0 && (
+              <button 
+                className="absolute left-4 md:left-8 z-20 text-white bg-black bg-opacity-50 hover:bg-opacity-70 rounded-full p-3 transition-all duration-150 ease-in-out transform hover:scale-110"
+                onClick={handlePreviousImage}
+                aria-label="Previous image"
+              >
+                <ChevronLeft size={32} />
+              </button>
+            )}
+            
             <img 
-              src={imageSrc} 
+              src={fullViewImageSrc || imageSrc} 
               alt={prompt || "Generated image"} 
               className="max-w-full max-h-[90vh] object-contain rounded shadow-lg"
             />
+            
+            {/* Next button */}
+            {currentViewIndex < allImageMessages.length - 1 && (
+              <button 
+                className="absolute right-4 md:right-8 z-20 text-white bg-black bg-opacity-50 hover:bg-opacity-70 rounded-full p-3 transition-all duration-150 ease-in-out transform hover:scale-110"
+                onClick={handleNextImage}
+                aria-label="Next image"
+              >
+                <ChevronRight size={32} />
+              </button>
+            )}
+            
+            {/* Close button */}
             <button 
-              className="absolute top-2 right-2 text-white bg-black bg-opacity-50 rounded-full p-2 hover:bg-opacity-70"
+              className="absolute top-4 right-4 text-white bg-black bg-opacity-50 rounded-full p-2 hover:bg-opacity-70 transition-all"
               onClick={handleCloseFullView}
+              aria-label="Close fullscreen view"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-              </svg>
+              <X size={24} />
             </button>
+            
+            {/* Image navigation info */}
+            <div className="absolute bottom-6 left-0 right-0 text-center text-white">
+              {currentViewIndex !== -1 && (
+                <span className="px-4 py-2 bg-black bg-opacity-60 rounded-md text-lg font-medium">
+                  {currentViewIndex + 1} / {allImageMessages.length}
+                </span>
+              )}
+            </div>
           </div>
         </div>
       )}
