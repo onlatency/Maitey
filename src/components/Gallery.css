@@ -1,0 +1,147 @@
+/* Gallery and Image Card Styling */
+
+/* Prompt text scrollbar styling */
+.prompt-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #d8b4fe #f3f4f6;
+}
+
+.prompt-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.prompt-scrollbar::-webkit-scrollbar-track {
+  background: #f3f4f6;
+  border-radius: 10px;
+}
+
+.prompt-scrollbar::-webkit-scrollbar-thumb {
+  background-color: #d8b4fe;
+  border-radius: 10px;
+}
+
+/* Gallery container */
+.gallery-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-gap: 1rem;
+  padding: 1rem;
+}
+
+/* Image card styling */
+.image-card {
+  border-radius: 8px;
+  overflow: hidden;
+  transition: transform 0.2s, box-shadow 0.2s;
+  background-color: white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.image-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.image-container {
+  position: relative;
+  padding-top: 100%; /* 1:1 Aspect Ratio */
+  width: 100%;
+}
+
+.image-container img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Chat selection styles */
+.chat-list-item {
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.chat-list-item-selected {
+  background-color: #f9e6f3; /* Light pink for selected items */
+  color: #9333ea;
+}
+
+.chat-list-item-active {
+  background-color: #9333ea; /* Purple for active chat */
+  color: white;
+}
+
+/* Style buttons in the style quick select */
+.style-button {
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+}
+
+.style-button-active {
+  background-color: #9333ea;
+  color: white;
+  box-shadow: 0 2px 4px rgba(147, 51, 234, 0.3);
+}
+
+.style-button-inactive {
+  background-color: #f3e8ff;
+  color: #9333ea;
+}
+
+.style-button-inactive:hover {
+  background-color: #e9d5ff;
+}
+
+/* Background colors */
+.bg-cream-50 {
+  background-color: #fffaf0;
+}
+
+.bg-cream-100 {
+  background-color: #fef6e4;
+}
+
+/* Full screen image overlay */
+.fullscreen-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+}
+
+.fullscreen-image {
+  max-width: 90vw;
+  max-height: 90vh;
+  object-fit: contain;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.close-button {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background-color: rgba(0, 0, 0, 0.5);
+  color: white;
+  border-radius: 9999px;
+  padding: 0.5rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.close-button:hover {
+  background-color: rgba(0, 0, 0, 0.7);
+}

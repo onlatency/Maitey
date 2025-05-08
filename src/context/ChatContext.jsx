@@ -4,6 +4,8 @@ import React, { createContext, useContext, useReducer, useEffect } from 'react';
 const initialState = {
   chats: [],
   activeChatId: null,
+  selectedChatIds: [], // New field for multi-selection
+  activeGenerations: [], // Track parallel image generations
   isLoading: false,
   error: null,
   settings: {
@@ -42,7 +44,12 @@ const ACTIONS = {
   SET_LOADING: 'SET_LOADING',
   SET_ERROR: 'SET_ERROR',
   UPDATE_IMAGE_MESSAGE: 'UPDATE_IMAGE_MESSAGE',
-  UPDATE_SETTINGS: 'UPDATE_SETTINGS'
+  UPDATE_SETTINGS: 'UPDATE_SETTINGS',
+  SELECT_CHAT: 'SELECT_CHAT',
+  DESELECT_CHAT: 'DESELECT_CHAT',
+  CLEAR_SELECTED_CHATS: 'CLEAR_SELECTED_CHATS',
+  ADD_ACTIVE_GENERATION: 'ADD_ACTIVE_GENERATION',
+  REMOVE_ACTIVE_GENERATION: 'REMOVE_ACTIVE_GENERATION'
 };
 
 // Reducer function to handle state updates
@@ -59,11 +66,20 @@ const chatReducer = (state, action) => {
       };
       
     case ACTIONS.DELETE_CHAT:
-      const remainingChats = state.chats.filter(chat => chat.id !== action.payload);
+      // If we're deleting a selected chat, also remove it from the selected chat IDs
+      const chatIdToDelete = action.payload;
+      const updatedSelectedChatIds = state.selectedChatIds.filter(id => id !== chatIdToDelete);
+      
+      const remainingChats = state.chats.filter(chat => chat.id !== chatIdToDelete);
+      const newActiveChatId = chatIdToDelete === state.activeChatId
+        ? (remainingChats.length > 0 ? remainingChats[0].id : null)
+        : state.activeChatId;
+        
       return { 
         ...state, 
         chats: remainingChats,
-        activeChatId: remainingChats.length > 0 ? remainingChats[0].id : null
+        activeChatId: newActiveChatId,
+        selectedChatIds: updatedSelectedChatIds
       };
       
     case ACTIONS.RENAME_CHAT:
@@ -93,6 +109,20 @@ const chatReducer = (state, action) => {
       return { ...state, error: action.payload };
       
     case ACTIONS.UPDATE_IMAGE_MESSAGE:
+      // Check if message is a new complete message to be added instead of an update
+      if (typeof action.payload === 'object' && !action.payload.messageId && action.payload.id) {
+        // This is a new message to be added to the active chat
+        return {
+          ...state,
+          chats: state.chats.map(chat =>
+            chat.id === state.activeChatId
+              ? { ...chat, messages: [...chat.messages, action.payload] }
+              : chat
+          )
+        };
+      }
+      
+      // Otherwise, perform a regular update
       return { 
         ...state, 
         chats: state.chats.map(chat => 
@@ -141,6 +171,40 @@ const chatReducer = (state, action) => {
       return {
         ...state,
         settings: { ...state.settings, ...action.payload }
+      };
+    
+    case ACTIONS.SELECT_CHAT:
+      // Don't add duplicate chat IDs
+      if (state.selectedChatIds.includes(action.payload)) {
+        return state;
+      }
+      return {
+        ...state,
+        selectedChatIds: [...state.selectedChatIds, action.payload]
+      };
+      
+    case ACTIONS.DESELECT_CHAT:
+      return {
+        ...state,
+        selectedChatIds: state.selectedChatIds.filter(id => id !== action.payload)
+      };
+      
+    case ACTIONS.CLEAR_SELECTED_CHATS:
+      return {
+        ...state,
+        selectedChatIds: []
+      };
+      
+    case ACTIONS.ADD_ACTIVE_GENERATION:
+      return {
+        ...state,
+        activeGenerations: [...state.activeGenerations, action.payload]
+      };
+      
+    case ACTIONS.REMOVE_ACTIVE_GENERATION:
+      return {
+        ...state,
+        activeGenerations: state.activeGenerations.filter(id => id !== action.payload)
       };
       
     default:
@@ -222,6 +286,35 @@ export const ChatProvider = ({ children }) => {
     dispatch({ type: ACTIONS.SET_ERROR, payload: error });
   };
   
+  // Chat selection functions
+  const selectChat = (chatId) => {
+    dispatch({ type: ACTIONS.SELECT_CHAT, payload: chatId });
+  };
+  
+  const deselectChat = (chatId) => {
+    dispatch({ type: ACTIONS.DESELECT_CHAT, payload: chatId });
+  };
+  
+  const clearSelectedChats = () => {
+    dispatch({ type: ACTIONS.CLEAR_SELECTED_CHATS });
+  };
+  
+  const deleteSelectedChats = () => {
+    state.selectedChatIds.forEach(chatId => {
+      deleteChat(chatId);
+    });
+    clearSelectedChats();
+  };
+  
+  // Parallel generation tracking
+  const addActiveGeneration = (generationId) => {
+    dispatch({ type: ACTIONS.ADD_ACTIVE_GENERATION, payload: generationId });
+  };
+  
+  const removeActiveGeneration = (generationId) => {
+    dispatch({ type: ACTIONS.REMOVE_ACTIVE_GENERATION, payload: generationId });
+  };
+  
   // Value object to be provided to consumers
   const value = {
     ...state,
@@ -234,7 +327,15 @@ export const ChatProvider = ({ children }) => {
     updateImageMessage,
     updateSettings,
     setLoading,
-    setError
+    setError,
+    // New selection functions
+    selectChat,
+    deselectChat,
+    clearSelectedChats,
+    deleteSelectedChats,
+    // Parallel generation tracking
+    addActiveGeneration,
+    removeActiveGeneration
   };
   
   return (
