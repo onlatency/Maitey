@@ -356,8 +356,6 @@ export const ChatProvider = ({ children }) => {
     try {
       // Check if we have an active chat, if not create one
       if (!state.activeChatId || !getActiveChat()) {
-        console.log('No active chat found, creating a new one before generating image');
-        
         // Generate a unique ID for a new chat
         const timestamp = Date.now();
         const uniqueId = timestamp + lastGeneratedIdRef.current;
@@ -369,32 +367,25 @@ export const ChatProvider = ({ children }) => {
           messages: []
         };
         
-        console.log('Creating new chat for image generation with ID:', uniqueId);
-        
-        // First add the chat
+        // Add chat and set as active
         dispatch({ type: ACTIONS.ADD_CHAT, payload: newChat });
-        
-        // Then set it as active
         dispatch({ type: ACTIONS.SET_ACTIVE_CHAT, payload: uniqueId });
         
         // Wait for state updates to take effect
         await new Promise(resolve => setTimeout(resolve, 100));
         
         // Verify that we have an active chat before proceeding
-        const activeChat = getActiveChat();
-        if (!activeChat) {
-          console.error('Failed to create and set active chat. Retrying once more.');
-          
+        if (!getActiveChat()) {
           // One more attempt with a longer timeout
           await new Promise(resolve => setTimeout(resolve, 300));
           
           if (!getActiveChat()) {
-            console.error('Still no active chat after retry. Image generation may fail.');
+            console.error('Failed to create active chat for image generation');
           }
         }
       }
       
-      // Create a pending message with a unique and stable ID
+      // Create a pending message with a unique ID
       const messageId = Date.now();
       const pendingMessage = {
         id: messageId,
@@ -403,86 +394,57 @@ export const ChatProvider = ({ children }) => {
         text: prompt,
         timestamp: new Date().toISOString(),
         status: 'pending',
-        // Initialize with an empty images array to ensure consistent structure
         images: []
       };
       
-      // If an existing image URL was provided (unlikely with real API), add it
+      // If an existing image URL was provided, add it
       if (existingImageUrl) {
         pendingMessage.images = [{ url: existingImageUrl, timestamp: new Date().toISOString() }];
         pendingMessage.status = 'complete';
-        console.log('Adding image message with provided URL:', pendingMessage);
         addMessage(pendingMessage);
-        return messageId; // Important to return ID for tracking in the finally block
+        return messageId;
       }
       
-      // Otherwise generate a new image using the Venice API
-      console.log('Adding pending message to chat history:', pendingMessage);
+      // Add pending message and track as active generation
       addMessage(pendingMessage);
-      
-      // IMPORTANT: Register this as an active generation to show loading state
       dispatch({ type: ACTIONS.ADD_ACTIVE_GENERATION, payload: messageId });
       setLoading(true);
       
-      // Set a guaranteed timeout to ensure we always clean up if API hangs completely
-      const safetyTimeoutId = setTimeout(() => {
-        console.log('Safety timeout triggered for message:', messageId);
-        // If this timeout triggers, API might be completely unresponsive
-        // Let's ensure the message shows an error and loading state is cleared
-        try {
-          updateImageMessage(messageId, {
-            status: 'error',
-            error: 'Operation took too long and was automatically cancelled.',
-            errorTime: new Date().toISOString()
-          });
-          dispatch({ type: ACTIONS.REMOVE_ACTIVE_GENERATION, payload: messageId });
-          setLoading(false);
-        } catch (safetyError) {
-          console.error('Error in safety timeout handler:', safetyError);
-        }
-      }, 15000); // 15 second safety timeout (longer than the API timeout)
-      
       try {
-        // Generate the image using the real API with current settings
-        // Add our own timeout to prevent hanging if the API takes too long
+        // Generate the image with timeout handling
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+        const timeoutId = setTimeout(() => {
+          controller.abort();
+        }, 10000); // 10 second timeout
         
         try {
           const result = await generateImage(prompt, state.settings);
           clearTimeout(timeoutId);
-          clearTimeout(safetyTimeoutId); // Clear the safety timeout
-          console.log('API image generation result:', result);
           
-          // ONLY modify the message if we didn't encounter an error
           if (result && result.imageUrl) {
-            console.log('Successfully generated image, updating message status');
+            // Success - update message with the new image
             updateImageMessage(messageId, {
               status: 'complete',
               newImageUrl: result.imageUrl
             });
           } else {
-            // No image URL in result, treat as error
+            // No image URL in result
             throw new Error('No image URL returned from API');
           }
         } catch (apiError) {
           clearTimeout(timeoutId);
-          clearTimeout(safetyTimeoutId); // Clear the safety timeout
-          console.error('Error from API call:', apiError);
           
-          // Check if it's a timeout error specifically
+          // Determine the error type and create user-friendly message
           const errorMessage = apiError.message || 'Unknown error';
           const isTimeout = apiError.name === 'AbortError' || 
                           errorMessage.includes('timeout') || 
                           errorMessage.includes('abort');
           
-          // Create a specific error message for timeouts
           const userFriendlyMessage = isTimeout
             ? 'Request timed out. The server took too long to respond.'
             : `API error: ${errorMessage}`;
           
-          // Ensure message is updated with error status
-          console.log('Updating message with error status:', { messageId, error: userFriendlyMessage });
+          // Update message with error status
           await updateImageMessage(messageId, {
             status: 'error',
             error: userFriendlyMessage,
@@ -492,33 +454,13 @@ export const ChatProvider = ({ children }) => {
           // Set global error state
           setError(userFriendlyMessage);
         }
-      } catch (error) {
-        clearTimeout(safetyTimeoutId); // Clear the safety timeout
-        console.error('Error in error handling:', error);
-        const errorMessage = error.message || 'Failed to generate image';
-        
-        // Always update the message with error status
-        console.log('Setting error status for message:', messageId);
-        await updateImageMessage(messageId, {
-          status: 'error',
-          error: errorMessage,
-          errorTime: new Date().toISOString()
-        });
-        
-        // Set global error state
-        setError(errorMessage);
       } finally {
-        // Make doubly sure the safety timeout is cleared
-        clearTimeout(safetyTimeoutId);
-        
-        // IMPORTANT: Always remove this message from active generations
+        // Always clean up active generation status
         dispatch({ type: ACTIONS.REMOVE_ACTIVE_GENERATION, payload: messageId });
         
-        // If there are no more active generations, set loading to false
-        // Use a slight delay to ensure state is updated
+        // Reset loading state if no more active generations
         setTimeout(() => {
           if (state.activeGenerations.length <= 1) {
-            console.log('Resetting global loading state');
             setLoading(false);
           }
         }, 100);
@@ -526,10 +468,9 @@ export const ChatProvider = ({ children }) => {
       
       return messageId; // Return the message ID for tracking
     } catch (outerError) {
-      // Catch any unexpected errors that might occur
       console.error('Unexpected error in addNewImage:', outerError);
       setError('An unexpected error occurred: ' + (outerError.message || 'Unknown error'));
-      setLoading(false); // Ensure loading state is reset
+      setLoading(false);
       return null;
     }
   };
