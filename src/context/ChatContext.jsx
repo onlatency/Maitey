@@ -415,7 +415,7 @@ export const ChatProvider = ({ children }) => {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => {
           controller.abort();
-        }, 10000); // 10 second timeout
+        }, 45000); // 45 second timeout
         
         try {
           const result = await generateImage(prompt, state.settings);

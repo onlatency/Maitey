@@ -67,7 +67,7 @@ export async function generateImage(prompt, options = {}) {
     
     // Set up timeout for fetch request - increased to allow more time for generation
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout (for testing timeout issues)
+    const timeoutId = setTimeout(() => controller.abort(), 45000); // 45 second timeout for production use
     
     let response;
     try {
