@@ -57,6 +57,7 @@
 - Updated application title and branding
 - Interactive image size selector with draggable corners and real-time feedback
 - Draggable settings panels with customizable order via toggle button
+- Immediate reset of prompt submission button for faster multi-image workflows
 
 ## Technical Improvements
 

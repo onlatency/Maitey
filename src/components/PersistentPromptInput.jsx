@@ -29,6 +29,7 @@ function PersistentPromptInput() {
   const MAX_PROMPT_LENGTH = 1500; // Venice API limit
   
   const generateNewImage = async () => {
+    // Maintain all validation checks
     if (!promptText.trim() || promptText.length > MAX_PROMPT_LENGTH) return;
     
     console.log('Starting image generation with prompt:', promptText);
@@ -39,43 +40,29 @@ function PersistentPromptInput() {
     // Clear input immediately to provide responsive feedback
     setPromptText('');
     
-    // Set local submitting state to true to disable only this button
+    // Set local submitting state to true just temporarily to prevent multiple clicks
     setIsSubmitting(true);
-    
-    // Set a guaranteed timeout to re-enable the button in case of any errors
-    // This ensures the button is never permanently disabled
-    const buttonTimeout = setTimeout(() => {
-      setIsSubmitting(false);
-      console.log('Button re-enabled by safety timeout');
-    }, 5000); // Ensure button becomes enabled again after 5 seconds no matter what
     
     try {
       console.log('Image generation request submitted for:', currentPrompt);
       
-      // Use a separate try/catch for the addNewImage function
-      try {
-        // Fire and forget, but with proper error handling
-        addNewImage(currentPrompt)
-          .catch(error => {
-            console.error('Error in image generation:', error);
-            setError('Failed to generate image: ' + (error.message || 'Unknown error'));
-          })
-          .finally(() => {
-            // Always clear the timeout and reset the button state
-            clearTimeout(buttonTimeout);
-            setIsSubmitting(false);
-            console.log('Button re-enabled after image generation attempt');
-          });
-      } catch (innerError) {
-        console.error('Error calling addNewImage:', innerError);
-        setError('Failed to start image generation: ' + (innerError.message || 'Unknown error'));
-        clearTimeout(buttonTimeout);
+      // Start the image generation process
+      addNewImage(currentPrompt)
+        .catch(error => {
+          console.error('Error in image generation:', error);
+          setError('Failed to generate image: ' + (error.message || 'Unknown error'));
+        });
+        
+      // Re-enable the button immediately after the request is sent
+      // This ensures the button doesn't wait for the generation to complete
+      setTimeout(() => {
         setIsSubmitting(false);
-      }
-    } catch (outerError) {
-      console.error('Unexpected error in generateNewImage:', outerError);
-      setError('Unexpected error: ' + (outerError.message || 'Unknown error'));
-      clearTimeout(buttonTimeout);
+        console.log('Button re-enabled immediately after request is sent');
+      }, 300); // Small delay for UI feedback and to prevent accidental double-clicks
+      
+    } catch (error) {
+      console.error('Unexpected error in generateNewImage:', error);
+      setError('Unexpected error: ' + (error.message || 'Unknown error'));
       setIsSubmitting(false);
     }
   };

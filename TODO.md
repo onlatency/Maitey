@@ -150,6 +150,7 @@ Transform the Venice Image Chat application into a professional tool for media c
   - Fixed issue where image generation fails after deleting the last chat
   - Improved chat creation and activation process when no chats exist
   - Added support for concurrent image generation requests
+  - Optimized submit button behavior to provide immediate user feedback
 
 - **Venice API Integration Improvements**:
   - Enhanced API request timeout handling with proper error messages
