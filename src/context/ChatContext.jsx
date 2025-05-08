@@ -477,39 +477,14 @@ export const ChatProvider = ({ children }) => {
           ? 'Request timed out. The server took too long to respond.'
           : `API error: ${errorMessage}`;
         
-        // IMPORTANT: Directly check if the message still exists
-        const activeChat = getActiveChat();
-        const messageExists = activeChat?.messages?.some(msg => msg.id === messageId);
-        
-        if (messageExists) {
-          console.log('Message still exists, updating with error status');
-          // Apply the update using a dispatched action to ensure it's processed
-          dispatch({
-            type: ACTIONS.UPDATE_IMAGE_MESSAGE,
-            payload: {
-              messageId,
-              updates: {
-                status: 'error',
-                error: userFriendlyMessage,
-                errorTime: new Date().toISOString()
-              }
-            }
-          });
-        } else {
-          console.error('Message was removed from state before we could update it');
-          // Create a new error message if the original was lost
-          const errorMessage = {
-            id: Date.now(), // New ID
-            type: 'image',
-            sender: 'user',
-            text: prompt,
-            timestamp: new Date().toISOString(),
-            status: 'error',
-            error: userFriendlyMessage,
-            errorTime: new Date().toISOString()
-          };
-          addMessage(errorMessage);
-        }
+        // Always update message with error status - don't check if it exists first
+        // This ensures the error state persists in the UI
+        console.log('Updating message with error status:', { messageId, error: userFriendlyMessage });
+        updateImageMessage(messageId, {
+          status: 'error',
+          error: userFriendlyMessage,
+          errorTime: new Date().toISOString()
+        });
         
         // Set global error state
         setError(userFriendlyMessage);
@@ -519,37 +494,13 @@ export const ChatProvider = ({ children }) => {
       hasErrorOccurred = true;
       const errorMessage = error.message || 'Failed to generate image';
       
-      // Check again if the message still exists before updating
-      const activeChat = getActiveChat();
-      const messageExists = activeChat?.messages?.some(msg => msg.id === messageId);
-      
-      if (messageExists) {
-        // Update message with error status
-        dispatch({
-          type: ACTIONS.UPDATE_IMAGE_MESSAGE,
-          payload: {
-            messageId,
-            updates: {
-              status: 'error',
-              error: errorMessage,
-              errorTime: new Date().toISOString()
-            }
-          }
-        });
-      } else {
-        // Create a new error message as fallback
-        const newErrorMessage = {
-          id: Date.now(),
-          type: 'image',
-          sender: 'user',
-          text: prompt,
-          timestamp: new Date().toISOString(),
-          status: 'error',
-          error: errorMessage,
-          errorTime: new Date().toISOString()
-        };
-        addMessage(newErrorMessage);
-      }
+      // Always update the message with error status without checking if it exists
+      console.log('Setting error status for message:', messageId);
+      updateImageMessage(messageId, {
+        status: 'error',
+        error: errorMessage,
+        errorTime: new Date().toISOString()
+      });
       
       // Set global error state
       setError(errorMessage);
@@ -563,28 +514,6 @@ export const ChatProvider = ({ children }) => {
           setLoading(false);
         }
       }, 0);
-      
-      // Double check the active chat state to ensure our message is still there
-      if (hasErrorOccurred) {
-        const finalActiveChat = getActiveChat();
-        const messageStillExists = finalActiveChat?.messages?.some(msg => msg.id === messageId);
-        
-        if (!messageStillExists) {
-          console.error('Message still missing after error handling, creating a final fallback');
-          // Last resort fallback
-          const finalFallbackMessage = {
-            id: Date.now() + 1, // Ensure unique ID
-            type: 'image', 
-            sender: 'user',
-            text: prompt,
-            timestamp: new Date().toISOString(),
-            status: 'error',
-            error: 'Failed to generate image and preserve error state',
-            errorTime: new Date().toISOString()
-          };
-          addMessage(finalFallbackMessage);
-        }
-      }
     }
   };
   

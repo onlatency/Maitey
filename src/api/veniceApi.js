@@ -67,7 +67,7 @@ export async function generateImage(prompt, options = {}) {
     
     // Set up timeout for fetch request - increased to allow more time for generation
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout (for testing timeout issues)
     
     let response;
     try {
@@ -97,7 +97,7 @@ export async function generateImage(prompt, options = {}) {
     } catch (fetchError) {
       clearTimeout(timeoutId);
       if (fetchError.name === 'AbortError') {
-        console.error('Request timed out after 30 seconds');
+        console.error('Request timed out after 10 seconds');
         throw new Error('Request timed out. The server took too long to respond.');
       }
       console.error('Fetch error:', fetchError);
