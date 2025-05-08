@@ -10,6 +10,18 @@ function ImageGallery() {
   console.log('Active Chat:', activeChat);
   console.log('Active Generations:', activeGenerations);
 
+  // Find active generations that belong to the current chat
+  // This filters the loading cards to only show in the relevant chat
+  const activeChatId = activeChat?.id;
+  const currentChatActiveGenerations = activeGenerations.filter(genId => {
+    // Find the message with this generation ID
+    const msg = activeChat?.messages?.find(m => m.id === genId);
+    // Only include if the message exists in this chat
+    return !!msg;
+  });
+
+  console.log('Current Chat Active Generations:', currentChatActiveGenerations);
+
   // Extract all image messages from the active chat, including those with error status
   // IMPORTANT: Be more explicit about including error messages
   const imageMessages = activeChat?.messages?.filter(msg => {
@@ -77,8 +89,8 @@ function ImageGallery() {
             }).flat() // Flatten because map within map returns nested arrays
           )}
           
-          {/* Show a placeholder card for EACH image being generated */}
-          {activeGenerations.map(genId => (
+          {/* Show a placeholder card for EACH image being generated in THIS chat */}
+          {currentChatActiveGenerations.map(genId => (
             <ImageCard key={`loading-${genId}`} isLoading={true} messageId={genId} />
           ))}
         </div>

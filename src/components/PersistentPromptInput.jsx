@@ -8,11 +8,11 @@ function PersistentPromptInput() {
     updateImageMessage, 
     addNewImage, // Add the new function
     settings, 
-    isLoading, 
-    setLoading, 
     setError 
   } = useChatContext();
   
+  // Use local loading state for the button instead of global loading state
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [promptText, setPromptText] = useState('');
   const textareaRef = useRef(null);
   
@@ -33,18 +33,33 @@ function PersistentPromptInput() {
     
     console.log('Starting image generation with prompt:', promptText);
     
+    // Set local submitting state to true to disable only this button
+    setIsSubmitting(true);
+    
     try {
       // Use the real Venice API via the context function
       // The addNewImage function now handles all the API interaction
-      await addNewImage(promptText);
+      // Don't await - we want to fire and forget, so the button becomes active again
+      addNewImage(promptText)
+        .catch(error => {
+          console.error('Error in image generation:', error);
+          setError('Failed to generate image: ' + error.message);
+        })
+        .finally(() => {
+          // Always reset the submitting state after a brief delay
+          setTimeout(() => {
+            setIsSubmitting(false);
+          }, 1000); // Brief delay for feedback
+        });
       
-      // Clear input after successful submission
+      // Clear input immediately after request is sent
       setPromptText('');
       
       console.log('Image generation request submitted');
     } catch (error) {
       console.error('Error requesting image generation:', error);
       setError('Failed to start image generation');
+      setIsSubmitting(false);
     }
   };
   
@@ -68,7 +83,7 @@ function PersistentPromptInput() {
             onChange={(e) => setPromptText(e.target.value)}
             placeholder="Describe the image you want to create..."
             className="w-full p-3 border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-shadow duration-150 resize-none overflow-hidden min-h-[48px] max-h-[120px]"
-            disabled={isLoading}
+            disabled={isSubmitting}
             rows="1"
           />
           
@@ -86,15 +101,15 @@ function PersistentPromptInput() {
           {/* Generate Button */}
           <button
             type="submit"
-            disabled={isLoading || !promptText.trim() || promptText.length > MAX_PROMPT_LENGTH}
+            disabled={isSubmitting || !promptText.trim() || promptText.length > MAX_PROMPT_LENGTH}
             className={`p-3 rounded-lg text-white transition-colors duration-150 ease-in-out ${
-              isLoading || !promptText.trim() || promptText.length > MAX_PROMPT_LENGTH
+              isSubmitting || !promptText.trim() || promptText.length > MAX_PROMPT_LENGTH
                 ? 'bg-gray-400 cursor-not-allowed' 
                 : 'bg-purple-500 hover:bg-purple-600 focus:ring-2 focus:ring-purple-300'
             }`}
             title="Generate Image"
           >
-            {isLoading ? <Loader2 className="animate-spin" size={24} /> : <Send size={24} />}
+            {isSubmitting ? <Loader2 className="animate-spin" size={24} /> : <Send size={24} />}
           </button>
           
           {/* Enhance Prompt Button (Lightbulb) */}
