@@ -6,9 +6,6 @@ const IMAGE_GENERATE_URL = `${BASE_API_URL}/image/generate`;
 const MODELS_URL = `${BASE_API_URL}/models`;
 const STYLES_URL = `${BASE_API_URL}/image/styles`;
 
-// Use real API data
-const USE_MOCK_DATA = true; // Temporarily set to true to ensure all models are shown
-
 // Validation to ensure API key is available
 if (!VENICE_API_KEY) {
   console.error('Venice API Key not found! Make sure to set VITE_VENICE_API_KEY in your .env file');

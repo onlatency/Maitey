@@ -247,7 +247,7 @@ Create a professional tool for media creators who need to generate, classify, an
 ### May 8, 2025: UI and API Integration Enhancements
 
 - **Model Selection Improvements**:
-  - Fixed model dropdown to consistently display all five required models
+  - Fixed model dropdown in both SettingsPanel and Layout components
   - Implemented hardcoded model list to ensure reliability regardless of API response
   - Standardized on five specific models with proper names:
     - Stable Diffusion 3.5 (SD35)
@@ -257,6 +257,7 @@ Create a professional tool for media creators who need to generate, classify, an
     - Pony Realism (PonyR)
   - Enhanced dropdown UI with custom styling and proper arrow indicator
   - Added both long and short name formats for different UI contexts
+  - Fixed issue where model selection wasn't correctly applied to generated images
 
 - **Style Selection Enhancements**:
   - Added a comprehensive style dropdown below the quick select buttons
@@ -265,6 +266,7 @@ Create a professional tool for media creators who need to generate, classify, an
   - Enhanced styling to match model dropdown with consistent UI elements
   - Added loading indicator that doesn't disrupt the layout
   - Improved overall visual hierarchy and spacing
+  - Ensured style selection properly integrates with the API
 
 ### May 8, 2025: Load Testing & Reliability Improvements
 
