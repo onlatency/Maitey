@@ -49,6 +49,12 @@
 - Helpful prompt suggestions
 - Settings panel for customizing generation parameters
 - Image downloading with automatic filename generation
+- Resizable side panels for improved workspace customization
+- Enhanced slider controls with editable and tab-navigable numeric fields
+- Physical-looking slider design with custom knobs and depth effects
+- Modernized UI elements with consistent styling and visual cues
+- Improved chat list item layout with proper spacing and alignment
+- Updated application title and branding
 
 ## Technical Improvements
 
