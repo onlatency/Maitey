@@ -33,10 +33,13 @@ function ImageSizeControl() {
   const dragRef = useRef(null);
   const containerRef = useRef(null);
   
-  // Update context settings when size changes
+  // Update context settings when size changes, but prevent infinite update loops
   useEffect(() => {
-    updateSettings({ width: size.w, height: size.h });
-  }, [size, updateSettings]);
+    // Only update if values actually changed to prevent infinite loops
+    if (settings.width !== size.w || settings.height !== size.h) {
+      updateSettings({ width: size.w, height: size.h });
+    }
+  }, [size, settings.width, settings.height, updateSettings]);
   
   /* ----- Helper Functions --------------------------------------------- */
   
