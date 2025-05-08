@@ -100,22 +100,29 @@ function Layout() {
         </div>
         
         {/* Settings Panel - Always show settings panel */}
-        <div className="flex-1 min-h-[100px] p-3 space-y-4 bg-cream-50 overflow-y-auto">
-          <h3 className="font-medium text-purple-800">Image Settings</h3>
+        <div className="flex-1 min-h-[100px] p-4 space-y-5 bg-cream-50 overflow-y-auto">
+          <h3 className="font-medium text-lg text-purple-800">Image Settings</h3>
             
             {/* Model Selection */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Model</label>
-              <select
-                name="model"
-                value={settings.model}
-                onChange={(e) => updateSettings({ model: e.target.value })}
-                className="w-full p-2 border border-purple-200 rounded-md bg-white focus:ring-2 focus:ring-purple-300 focus:border-transparent"
-              >
-                <option value="venice-sd35">Stable Diffusion 3.5</option>
-                <option value="lustify-sdxl">Lustify SDXL</option>
-                <option value="venice-nsfw">Venice NSFW</option>
-              </select>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Model</label>
+              <div className="relative">
+                <select
+                  name="model"
+                  value={settings.model}
+                  onChange={(e) => updateSettings({ model: e.target.value })}
+                  className="w-full py-2.5 px-3 appearance-none bg-white border-2 border-purple-300 text-purple-800 rounded-md focus:ring-2 focus:ring-purple-400 focus:border-transparent shadow-sm"
+                >
+                  <option value="venice-sd35">Stable Diffusion 3.5</option>
+                  <option value="lustify-sdxl">Lustify SDXL</option>
+                  <option value="venice-nsfw">Venice NSFW</option>
+                </select>
+                <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-purple-500">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
+                  </svg>
+                </div>
+              </div>
             </div>
             
             {/* Style Quick Select */}
@@ -125,35 +132,104 @@ function Layout() {
             <ImageSizeControl />
             
             {/* Steps Slider */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Steps <span className="text-gray-500 text-xs">{settings.steps}</span>
-              </label>
-              <input
-                type="range"
-                min="0"
-                max="50"
-                step="1"
-                value={settings.steps}
-                onChange={(e) => updateSettings({ steps: parseInt(e.target.value, 10) })}
-                className="w-full"
-              />
+            <div className="pb-1">
+              <div className="flex justify-between mb-2">
+                <label htmlFor="steps-input" className="text-sm font-medium text-gray-700">Steps</label>
+                <input
+                  id="steps-input"
+                  type="number"
+                  min="0"
+                  max="50"
+                  value={settings.steps}
+                  onChange={(e) => {
+                    const value = Math.min(50, Math.max(0, parseInt(e.target.value) || 0));
+                    updateSettings({ steps: value });
+                  }}
+                  className="w-14 py-0.5 px-2 text-right text-purple-700 font-medium bg-transparent border border-transparent hover:border-purple-200 focus:border-purple-400 focus:bg-white focus:outline-none rounded transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  tabIndex="1"
+                />  
+              </div>
+              <div className="relative h-9 my-2">
+                {/* Track with depth effect */}
+                <div className="absolute top-1/2 transform -translate-y-1/2 w-full h-3 rounded-full bg-purple-200 shadow-inner overflow-hidden">
+                  {/* Filled portion */}
+                  <div 
+                    className="h-full bg-purple-500 rounded-l-full"
+                    style={{ width: `${(settings.steps / 50) * 100}%` }}
+                  ></div>
+                </div>
+                
+                {/* Knob */}
+                <div 
+                  className="absolute top-1/2 transform -translate-y-1/2 h-6 w-6 rounded-full bg-white border-2 border-purple-500 shadow-md cursor-pointer"
+                  style={{ 
+                    left: `calc(${(settings.steps / 50) * 100}% - 12px)`,
+                    zIndex: 10
+                  }}
+                ></div>
+                
+                {/* Hidden input for actual functionality */}
+                <input
+                  type="range"
+                  min="0"
+                  max="50"
+                  step="1"
+                  value={settings.steps}
+                  onChange={(e) => updateSettings({ steps: parseInt(e.target.value, 10) })}
+                  className="w-full absolute inset-0 h-full opacity-0 cursor-pointer z-20"
+                />
+              </div>
             </div>
             
             {/* Adherence (CFG) Slider */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Adherence (CFG) <span className="text-gray-500 text-xs">{settings.cfgScale}</span>
-              </label>
-              <input
-                type="range"
-                min="0"
-                max="7"
-                step="0.1"
-                value={settings.cfgScale}
-                onChange={(e) => updateSettings({ cfgScale: parseFloat(e.target.value) })}
-                className="w-full"
-              />
+            <div className="pb-1">
+              <div className="flex justify-between mb-2">
+                <label htmlFor="cfg-input" className="text-sm font-medium text-gray-700">Adherence (CFG)</label>
+                <input
+                  id="cfg-input"
+                  type="number"
+                  min="0"
+                  max="7"
+                  step="0.1"
+                  value={settings.cfgScale}
+                  onChange={(e) => {
+                    const value = Math.min(7, Math.max(0, parseFloat(e.target.value) || 0));
+                    updateSettings({ cfgScale: value });
+                  }}
+                  className="w-14 py-0.5 px-2 text-right text-purple-700 font-medium bg-transparent border border-transparent hover:border-purple-200 focus:border-purple-400 focus:bg-white focus:outline-none rounded transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  tabIndex="2"
+                />
+              </div>
+              <div className="relative h-9 my-2">
+                {/* Track with depth effect */}
+                <div className="absolute top-1/2 transform -translate-y-1/2 w-full h-3 rounded-full bg-purple-200 shadow-inner overflow-hidden">
+                  {/* Filled portion */}
+                  <div 
+                    className="h-full bg-purple-500 rounded-l-full"
+                    style={{ width: `${(settings.cfgScale / 7) * 100}%` }}
+                  ></div>
+                </div>
+                
+                {/* Knob */}
+                <div 
+                  className="absolute top-1/2 transform -translate-y-1/2 h-6 w-6 rounded-full bg-white border-2 border-purple-500 shadow-md cursor-pointer"
+                  style={{ 
+                    left: `calc(${(settings.cfgScale / 7) * 100}% - 12px)`,
+                    zIndex: 10
+                  }}
+                ></div>
+                
+                {/* Hidden input for actual functionality */}
+                <input
+                  type="range"
+                  min="0"
+                  max="7"
+                  step="0.1"
+                  value={settings.cfgScale}
+                  onChange={(e) => updateSettings({ cfgScale: parseFloat(e.target.value) })}
+                  className="w-full absolute inset-0 h-full opacity-0 cursor-pointer z-20"
+                />
+              </div>
             </div>
             
             {/* Negative Prompts */}
