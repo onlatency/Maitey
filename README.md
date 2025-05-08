@@ -19,7 +19,7 @@ A professional tool for media creators to generate, classify, and manage AI imag
 - 💜 Beautiful professional UI with intuitive controls
 - ⚠️ Robust error handling with user-friendly messages
 - ⏱️ Request timeout management with graceful recovery (45 seconds)
-- 🔄 Concurrent image generation support
+- 🔄 Concurrent image generation for multi-chat workflow
 
 ## Getting Started
 
@@ -37,6 +37,7 @@ A professional tool for media creators to generate, classify, and manage AI imag
    ```bash
    npm install
    ```
+
 3. Create a `.env` file in the root directory with your Venice API key:
 
    ```env

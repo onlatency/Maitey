@@ -131,6 +131,7 @@ Transform the Venice Image Chat application into a professional tool for media c
   - Confirmed improved error handling captures and displays any issues properly
   - Tested various types of prompts to ensure consistent generation quality
   - Identified that manual prompt submission works reliably for concurrent generations
+  - Verified that images are properly persisted in their original chat when switching between chats
 
 - **Error Handling Enhancements**:
   - Refactored error handling in veniceApi.js to improve clarity and reduce nesting
@@ -170,4 +171,5 @@ Transform the Venice Image Chat application into a professional tool for media c
 - [ ] Export/import functionality for image collections
 - [ ] Implement client-side rate limiting to prevent too many concurrent requests
 - [ ] Add automatic retry with exponential backoff for failed requests
-- [ ] Add API health monitoring to detect when Venice API is experiencing issues
+- [ ] Basic status bar display with API connection status
+- [ ] Simple tracking of active generation counts
