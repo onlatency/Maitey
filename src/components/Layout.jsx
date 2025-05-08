@@ -21,19 +21,8 @@ function Layout() {
       {/* Left Panel - Chats and Settings */}
       <div className="min-w-[200px] w-64 max-w-[400px] flex flex-col bg-cream-100 border-r border-purple-100 resize-x overflow-hidden relative">
         {/* Chat List Section */}
-        <div className="min-h-[100px] h-1/2 max-h-[calc(100%-100px)] overflow-y-auto resize-y border-b border-purple-100 relative">
+        <div className="min-h-[100px] h-1/2 max-h-[calc(100%-100px)] overflow-hidden resize-y border-b border-purple-100 relative">
           <ChatSelector />
-          
-          {/* New Chat Button */}
-          <div className="p-2 border-t border-purple-100">
-            <button
-              onClick={handleCreateNewChat}
-              className="w-full flex items-center justify-center gap-2 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-md transition-colors"
-            >
-              <Plus size={18} />
-              <span>New Chat</span>
-            </button>
-          </div>
         </div>
         
         {/* Settings Panel - Always show settings panel */}

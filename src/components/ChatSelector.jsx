@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { MessageSquare, Trash2, Check } from 'lucide-react'; 
+import { MessageSquare, Trash2, Check, Plus } from 'lucide-react'; 
 import { useChatContext } from '../context/ChatContext';
 import { shortenPrompt } from '../utils/imageUtils';
 
 function ChatSelector() {
-  const { chats, activeChatId, setActiveChat, deleteChat } = useChatContext();
+  const { chats, activeChatId, setActiveChat, deleteChat, createNewChat } = useChatContext();
   const [selectedChats, setSelectedChats] = useState([]);
   const [multiSelectMode, setMultiSelectMode] = useState(false);
 
@@ -57,28 +57,39 @@ function ChatSelector() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex justify-between items-center p-2 border-b border-purple-100">
-        <h2 className="font-bold text-purple-800">MAITEYCHAT</h2>
-        <div className="flex items-center space-x-2">
-          <button
-            onClick={toggleMultiSelectMode}
-            className={`p-1.5 rounded-md transition-colors ${
-              multiSelectMode ? 'bg-purple-600 text-white' : 'text-purple-600 hover:bg-purple-100'
-            }`}
-            title={multiSelectMode ? "Exit selection mode" : "Select multiple chats"}
-          >
-            <Check size={16} />
-          </button>
-          {multiSelectMode && selectedChats.length > 0 && (
+      <div className="flex flex-col p-2 border-b border-purple-100">
+        <div className="flex justify-between items-center mb-2">
+          <h2 className="font-bold text-purple-800">MAITEYCHAT</h2>
+          <div className="flex items-center space-x-2">
             <button
-              onClick={deleteSelectedChats}
-              className="p-1.5 rounded-md text-red-600 hover:bg-red-100 transition-colors"
-              title="Delete selected chats"
+              onClick={toggleMultiSelectMode}
+              className={`p-1.5 rounded-md transition-colors ${
+                multiSelectMode ? 'bg-purple-600 text-white' : 'text-purple-600 hover:bg-purple-100'
+              }`}
+              title={multiSelectMode ? "Exit selection mode" : "Select multiple chats"}
             >
-              <Trash2 size={16} />
+              <Check size={16} />
             </button>
-          )}
+            {multiSelectMode && selectedChats.length > 0 && (
+              <button
+                onClick={deleteSelectedChats}
+                className="p-1.5 rounded-md text-red-600 hover:bg-red-100 transition-colors"
+                title="Delete selected chats"
+              >
+                <Trash2 size={16} />
+              </button>
+            )}
+          </div>
         </div>
+        
+        {/* New Chat Button */}
+        <button
+          onClick={() => createNewChat()}
+          className="w-full flex items-center justify-center gap-2 py-2 mb-2 bg-purple-600 hover:bg-purple-700 text-white rounded-md transition-colors"
+        >
+          <Plus size={16} />
+          <span>New Chat</span>
+        </button>
       </div>
 
       <div className="flex-grow overflow-y-auto">
