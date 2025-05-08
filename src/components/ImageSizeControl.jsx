@@ -12,10 +12,12 @@ const GUIDE_PRESETS = [
 ];
 
 // Constraints and parameters
-const SNAP_TOLERANCE = 20;    // px - how close the handle must be to snap
-const MAX_SIDE = 1280;        // px - maximum size allowed
-const MIN_SIDE = 256;         // px - minimum dimension size
-const GRID_SIZE = 16;         // px - all dimensions must be divisible by this value
+const SNAP_TOLERANCE = 20;     // px - how close the handle must be to snap
+const ABSOLUTE_MAX = 1280;     // px - absolute maximum size allowed
+const MAX_SIDE = 1248;         // px - effective maximum size (with padding)
+const MIN_SIDE = 256;          // px - minimum dimension size
+const GRID_SIZE = 16;          // px - all dimensions must be divisible by this value
+const DRAG_MULTIPLIER = 3;     // Amplify drag movements by this factor
 
 function ImageSizeControl() {
   const { settings, updateSettings } = useChatContext();
@@ -104,8 +106,9 @@ function ImageSizeControl() {
     
     const onMove = (ev) => {
       if (!containerRef.current) return;
-      const deltaX = ev.clientX - startX;
-      const deltaY = ev.clientY - startY;
+      // Apply drag multiplier to make dragging more responsive
+      const deltaX = (ev.clientX - startX) * DRAG_MULTIPLIER;
+      const deltaY = (ev.clientY - startY) * DRAG_MULTIPLIER;
       const newW = Math.min(MAX_SIDE, Math.max(MIN_SIDE, startW + deltaX));
       const newH = Math.min(MAX_SIDE, Math.max(MIN_SIDE, startH + deltaY));
       const snapped = snapIfNeeded(newW, newH);
@@ -135,24 +138,6 @@ function ImageSizeControl() {
       </div>
       
       <div className="relative aspect-square bg-white rounded-md border-2 border-purple-300 shadow-sm overflow-hidden">
-        {/* Guide rectangles */}
-        {GUIDE_PRESETS.map(p => {
-          const pctW = (p.width / MAX_SIDE) * 100;
-          const pctH = (p.height / MAX_SIDE) * 100;
-          return (
-            <div
-              key={p.name}
-              className="absolute border-2 border-dotted border-purple-200 pointer-events-none"
-              style={{ width: `${pctW}%`, height: `${pctH}%`, top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}
-            >
-              {/* bottom-right guide dot */}
-              <div
-                className="absolute w-3 h-3 bg-purple-300 rounded-full"
-                style={{ bottom: -4, right: -4 }}
-              />
-            </div>
-          );
-        })}
         
         {/* Draggable selection rectangle */}
         <div
@@ -169,10 +154,18 @@ function ImageSizeControl() {
               transform: 'translate(-50%, -50%)'
             }}
           >
-            {/* label overlay */}
-            <span className="absolute top-1 left-1 text-xs font-semibold text-purple-900 bg-white/80 px-1.5 py-0.5 rounded shadow-sm">
-              {displayName}
-            </span>
+            {/* label overlay - fixed width with pixel dimensions */}
+            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-48 max-w-[90%] text-center bg-white/95 p-3 rounded-lg shadow-md flex flex-col items-center justify-center gap-1">
+              <div className="text-base font-semibold text-purple-900">
+                {active === 'Custom' ? 'Custom' : active}
+              </div>
+              <div className="text-sm text-purple-700 font-medium">
+                ({currentRatio})
+              </div>
+              <div className="text-xs text-purple-600">
+                {size.w} × {size.h} px
+              </div>
+            </div>
             
             {/* bottom-right handle */}
             <div
@@ -184,10 +177,8 @@ function ImageSizeControl() {
         </div>
       </div>
       
-      {/* pixel read-out */}
-      <div className="text-xs text-gray-500 text-right mt-2">
-        Current ratio: {currentRatio}
-      </div>
+      {/* No longer needed as ratio is now in the central label */}
+      <div className="mt-2"></div>
     </div>
   );
 }
