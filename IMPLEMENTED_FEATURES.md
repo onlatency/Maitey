@@ -59,7 +59,7 @@
 - Error message persistence in UI with proper status updates
 - Reduced console noise for better debugging experience
 - Consistent state management during parallel operations
-- Configurable timeout settings (currently set to 10 seconds for testing)
+- Configurable timeout settings (set to 45 seconds for production use)
 - Proper cleanup of state even when operations fail
 
 ### Modern Architecture
