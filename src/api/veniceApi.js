@@ -55,20 +55,18 @@ export async function generateImage(prompt, options = {}) {
   console.log('API Payload:', payload);
 
   try {
-    console.log('Sending request to:', IMAGE_GENERATE_URL);
-    console.log('With authentication:', `Bearer ${VENICE_API_KEY.substring(0, 5)}...`);
-    console.log('Payload:', JSON.stringify(payload, null, 2));
-    
-    // Explicit validation of API key
+    // Validate API key first before attempting any request
     if (!VENICE_API_KEY || VENICE_API_KEY.length < 10) {
-      console.error('Invalid API key:', VENICE_API_KEY);
       throw new Error('Invalid or missing API key. Check your .env file.');
     }
     
-    // Set up timeout for fetch request - increased to allow more time for generation
+    // Set up timeout for fetch request
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 45000); // 45 second timeout for production use
+    const timeoutId = setTimeout(() => controller.abort(), 45000); // 45 second timeout
     
+    console.log('API Payload:', payload);
+    
+    // Execute the fetch request with timeout handling
     let response;
     try {
       response = await fetch(IMAGE_GENERATE_URL, {
@@ -81,79 +79,59 @@ export async function generateImage(prompt, options = {}) {
         signal: controller.signal
       });
       
-      // Clear the timeout as the request completed
-      clearTimeout(timeoutId);
+      clearTimeout(timeoutId); // Clear timeout as request completed
       
-      // Log full response information for debugging
-      console.log('Response status:', response.status);
-      console.log('Response headers:', Object.fromEntries([...response.headers.entries()]));
-      
-      // Handle HTTP errors immediately
+      // Handle HTTP errors
       if (!response.ok) {
         const errorText = await response.text();
-        console.error(`API error (${response.status}):`, errorText);
         throw new Error(`Venice API error: ${response.status} - ${errorText || 'Unknown error'}`);
       }
     } catch (fetchError) {
       clearTimeout(timeoutId);
+      
+      // Enhanced error handling with specific error types
       if (fetchError.name === 'AbortError') {
-        console.error('Request timed out after 10 seconds');
-        throw new Error('Request timed out. The server took too long to respond.');
+        throw new Error('Request timed out after 45 seconds. The server took too long to respond.');
+      } else if (fetchError.message.includes('Failed to fetch') || fetchError.message.includes('Network')) {
+        throw new Error(`Network connection error: ${fetchError.message}. Check your internet connection.`);
+      } else {
+        throw new Error(`API request failed: ${fetchError.message}`);
       }
-      console.error('Fetch error:', fetchError);
-      throw new Error(`Network error: ${fetchError.message}`);
     }
     
-    // We've already logged response status and headers and handled response errors above
-    
-    // According to the Venice API swagger, the response depends on return_binary setting
+    // Process the response based on requested format (binary or JSON)
     if (payload.return_binary) {
-      // For binary responses, we get the raw image data
-      try {
-        // Check content type to confirm we got an image
-        const contentType = response.headers.get('content-type');
-        console.log('Response content type:', contentType);
-        
-        if (!contentType || !contentType.includes('image/')) {
-          // We didn't get an image, try to read as text for error
-          const errorText = await response.text();
-          console.error('Expected image but got:', errorText);
-          throw new Error('API did not return an image. Received: ' + (contentType || 'unknown'));
-        }
-        
-        // Process the image blob
-        const imageBlob = await response.blob();
-        
-        if (!imageBlob || imageBlob.size === 0) {
-          throw new Error('Received empty image data');
-        }
-        
-        console.log('Successfully received image blob:', imageBlob.type, imageBlob.size, 'bytes');
-        
-        // Create a URL for the blob
-        const imageUrl = URL.createObjectURL(imageBlob);
-        
-        // Return both the URL and blob
-        return {
-          imageUrl,
-          imageBlob,
-          success: true
-        };
-      } catch (blobError) {
-        console.error('Error processing image blob:', blobError);
-        throw new Error(`Failed to process image: ${blobError.message}`);
+      // For binary responses, verify and process image data
+      const contentType = response.headers.get('content-type');
+      
+      if (!contentType || !contentType.includes('image/')) {
+        const errorText = await response.text();
+        throw new Error(`API did not return an image. Received: ${contentType || 'unknown content type'}`);
       }
+      
+      // Process the image blob
+      const imageBlob = await response.blob();
+      
+      if (!imageBlob || imageBlob.size === 0) {
+        throw new Error('API returned empty image data');
+      }
+      
+      // Create a URL for the blob and return result
+      const imageUrl = URL.createObjectURL(imageBlob);
+      console.log('Successfully received image data');
+      
+      return {
+        imageUrl,
+        imageBlob,
+        success: true
+      };
     } else {
-      // For non-binary responses, we expect JSON data
+      // For non-binary responses, process JSON data
       try {
         const data = await response.json();
-        console.log('Received JSON response:', data);
-        // Handle JSON response data
-        // For now, just return the data as is
         return data;
       } catch (jsonError) {
-        console.error('Error parsing JSON response:', jsonError);
-        throw new Error(`Failed to parse JSON response: ${jsonError.message}`);
+        throw new Error(`Invalid JSON response from API: ${jsonError.message}`);
       }
     }
   } catch (error) {

@@ -353,40 +353,16 @@ export const ChatProvider = ({ children }) => {
   
   // Add a new image by calling the Venice API
   const addNewImage = async (prompt, existingImageUrl = null) => {
+    // Create a message ID right away
+    const messageId = Date.now();
+    
     try {
-      // Check if we have an active chat, if not create one
+      // Ensure we have an active chat
       if (!state.activeChatId || !getActiveChat()) {
-        // Generate a unique ID for a new chat
-        const timestamp = Date.now();
-        const uniqueId = timestamp + lastGeneratedIdRef.current;
-        lastGeneratedIdRef.current += 1;
-        
-        const newChat = {
-          id: uniqueId,
-          name: `Generated Images`,
-          messages: []
-        };
-        
-        // Add chat and set as active
-        dispatch({ type: ACTIONS.ADD_CHAT, payload: newChat });
-        dispatch({ type: ACTIONS.SET_ACTIVE_CHAT, payload: uniqueId });
-        
-        // Wait for state updates to take effect
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
-        // Verify that we have an active chat before proceeding
-        if (!getActiveChat()) {
-          // One more attempt with a longer timeout
-          await new Promise(resolve => setTimeout(resolve, 300));
-          
-          if (!getActiveChat()) {
-            console.error('Failed to create active chat for image generation');
-          }
-        }
+        await ensureActiveChat();
       }
       
-      // Create a pending message with a unique ID
-      const messageId = Date.now();
+      // Create the pending message
       const pendingMessage = {
         id: messageId,
         type: 'image',
@@ -397,7 +373,7 @@ export const ChatProvider = ({ children }) => {
         images: []
       };
       
-      // If an existing image URL was provided, add it
+      // Handle case of existing image URL
       if (existingImageUrl) {
         pendingMessage.images = [{ url: existingImageUrl, timestamp: new Date().toISOString() }];
         pendingMessage.status = 'complete';
@@ -410,69 +386,110 @@ export const ChatProvider = ({ children }) => {
       dispatch({ type: ACTIONS.ADD_ACTIVE_GENERATION, payload: messageId });
       setLoading(true);
       
+      // Process image generation with proper error handling
       try {
-        // Generate the image with timeout handling
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => {
-          controller.abort();
-        }, 45000); // 45 second timeout
+        const result = await generateImage(prompt, state.settings);
         
-        try {
-          const result = await generateImage(prompt, state.settings);
-          clearTimeout(timeoutId);
-          
-          if (result && result.imageUrl) {
-            // Success - update message with the new image
-            updateImageMessage(messageId, {
-              status: 'complete',
-              newImageUrl: result.imageUrl
-            });
-          } else {
-            // No image URL in result
-            throw new Error('No image URL returned from API');
-          }
-        } catch (apiError) {
-          clearTimeout(timeoutId);
-          
-          // Determine the error type and create user-friendly message
-          const errorMessage = apiError.message || 'Unknown error';
-          const isTimeout = apiError.name === 'AbortError' || 
-                          errorMessage.includes('timeout') || 
-                          errorMessage.includes('abort');
-          
-          const userFriendlyMessage = isTimeout
-            ? 'Request timed out. The server took too long to respond.'
-            : `API error: ${errorMessage}`;
-          
-          // Update message with error status
-          await updateImageMessage(messageId, {
-            status: 'error',
-            error: userFriendlyMessage,
-            errorTime: new Date().toISOString()
+        if (result && result.imageUrl) {
+          // Success - update message with the new image
+          updateImageMessage(messageId, {
+            status: 'complete',
+            newImageUrl: result.imageUrl
           });
-          
-          // Set global error state
-          setError(userFriendlyMessage);
+        } else {
+          throw new Error('No image URL returned from API');
         }
+      } catch (error) {
+        // Categorize errors for better user feedback
+        const errorMessage = error.message || 'Unknown error';
+        let userFriendlyMessage = `API error: ${errorMessage}`;
+        
+        // Check for different error types
+        if (error.name === 'AbortError' || errorMessage.includes('timeout') || errorMessage.includes('too long')) {
+          userFriendlyMessage = 'Request timed out. The server took too long to respond.';
+        } else if (errorMessage.includes('Network') || errorMessage.includes('connection')) {
+          userFriendlyMessage = 'Network connection error. Please check your internet connection.';
+        } else if (errorMessage.includes('API key')) {
+          userFriendlyMessage = 'API authentication error. Please check your API key configuration.';
+        }
+        
+        // Always update the message with the error status
+        await updateImageMessage(messageId, {
+          status: 'error',
+          error: userFriendlyMessage,
+          errorTime: new Date().toISOString()
+        });
+        
+        // Set global error state to ensure visibility
+        setError(userFriendlyMessage);
       } finally {
-        // Always clean up active generation status
+        // Always clean up generation status regardless of success/failure
         dispatch({ type: ACTIONS.REMOVE_ACTIVE_GENERATION, payload: messageId });
         
-        // Reset loading state if no more active generations
-        setTimeout(() => {
-          if (state.activeGenerations.length <= 1) {
-            setLoading(false);
-          }
-        }, 100);
+        // Reset loading state if this was the last active generation
+        if (state.activeGenerations.length <= 1) {
+          setLoading(false);
+        }
       }
       
-      return messageId; // Return the message ID for tracking
+      return messageId;
     } catch (outerError) {
+      // Handle unexpected errors outside the normal flow
       console.error('Unexpected error in addNewImage:', outerError);
+      
+      // Create an error message even if we failed before creating the normal message
+      if (getActiveChat()) {
+        const errorMessage = {
+          id: messageId,
+          type: 'image',
+          sender: 'user',
+          text: prompt,
+          timestamp: new Date().toISOString(),
+          status: 'error',
+          error: 'An unexpected error occurred: ' + (outerError.message || 'Unknown error'),
+          errorTime: new Date().toISOString(),
+          images: []
+        };
+        addMessage(errorMessage);
+      }
+      
+      // Set global error and reset loading state
       setError('An unexpected error occurred: ' + (outerError.message || 'Unknown error'));
       setLoading(false);
       return null;
     }
+  };
+  
+  // Helper to ensure we have an active chat
+  const ensureActiveChat = async () => {
+    // Generate a unique ID for a new chat
+    const timestamp = Date.now();
+    const uniqueId = timestamp + lastGeneratedIdRef.current;
+    lastGeneratedIdRef.current += 1;
+    
+    const newChat = {
+      id: uniqueId,
+      name: `Generated Images`,
+      messages: []
+    };
+    
+    // Add chat and set as active
+    dispatch({ type: ACTIONS.ADD_CHAT, payload: newChat });
+    dispatch({ type: ACTIONS.SET_ACTIVE_CHAT, payload: uniqueId });
+    
+    // Wait for state updates to take effect
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    // Verify that we have an active chat
+    if (!getActiveChat()) {
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      if (!getActiveChat()) {
+        throw new Error('Failed to create active chat for image generation');
+      }
+    }
+    
+    return uniqueId;
   };
   
   // Update settings
