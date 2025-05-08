@@ -106,16 +106,12 @@ Create a professional tool for media creators who need to generate, classify, an
 
 ## Implemented Features
 
-### Welcome Screen with Suggested Prompts
+### Prompt Suggestions and UI
 
-- Clean, modern welcome screen that greets users when no chats exist
-- Suggestion buttons for quick-start prompts including:
-  - Tiger on Skateboard
-  - Goats in Coats
-  - Research AI campaigns
-  - Research battery tech
-  - Research sensor trends
+- Clean, modern interface that guides users
 - Helpful tips for creating effective prompts
+- Intuitive UI with prompt guidance
+- Image generation starts immediately after prompt submission
 
 ### Multi-Chat Management
 
