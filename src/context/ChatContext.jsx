@@ -146,7 +146,7 @@ const chatReducer = (state, action) => {
       return { 
         ...state, 
         chats: state.chats.map(chat => 
-          chat.id === state.activeChatId 
+          chat.id === (action.payload.chatId || state.activeChatId) 
             ? { 
                 ...chat, 
                 messages: chat.messages.map(msg => {
@@ -340,9 +340,9 @@ export const ChatProvider = ({ children }) => {
   };
   
   // Update an image message in the active chat
-  const updateImageMessage = (messageId, updates) => {
-    console.log('Updating image message:', { messageId, updates });
-    dispatch({ type: ACTIONS.UPDATE_IMAGE_MESSAGE, payload: { messageId, updates } });
+  const updateImageMessage = (messageId, updates, chatId = null) => {
+    console.log('Updating image message:', { messageId, updates, chatId });
+    dispatch({ type: ACTIONS.UPDATE_IMAGE_MESSAGE, payload: { messageId, updates, chatId } });
   };
   
   // Delete a message from the active chat
@@ -355,6 +355,9 @@ export const ChatProvider = ({ children }) => {
   const addNewImage = async (prompt, existingImageUrl = null) => {
     // Create a message ID right away
     const messageId = Date.now();
+    
+    // Store the current chat ID at the time of request
+    const sourceChatId = state.activeChatId;
     
     try {
       // Ensure we have an active chat
@@ -395,7 +398,7 @@ export const ChatProvider = ({ children }) => {
           updateImageMessage(messageId, {
             status: 'complete',
             newImageUrl: result.imageUrl
-          });
+          }, sourceChatId);
         } else {
           throw new Error('No image URL returned from API');
         }
@@ -418,7 +421,7 @@ export const ChatProvider = ({ children }) => {
           status: 'error',
           error: userFriendlyMessage,
           errorTime: new Date().toISOString()
-        });
+        }, sourceChatId);
         
         // Set global error state to ensure visibility
         setError(userFriendlyMessage);
