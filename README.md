@@ -240,8 +240,12 @@ Create a professional tool for media creators who need to generate, classify, an
 
 ## Recent Updates
 
-### May 8, 2025 - Repository Maintenance
+### May 8, 2025 - Code Cleanup & Repository Maintenance
 
+- Removed unused components (WelcomeScreen, ChatView, ChatList, PromptInput)
+- Removed associated test files for unused components
+- Simplified codebase by eliminating redundant code
+- Improved maintainability through better code organization
 - Removed `node_modules` directory from Git tracking
 - Improved `.gitignore` configuration adherence
 - Ensured repository follows best practices for dependency management
