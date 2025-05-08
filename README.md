@@ -1,4 +1,4 @@
-# Venice Image Chat - Professional Media UI
+# MAITEYCHAT - Media AI that enriches your chats
 
 A professional tool for media creators to generate, classify, and manage AI images at scale.
 
@@ -12,12 +12,13 @@ A professional tool for media creators to generate, classify, and manage AI imag
 - 📏 Multiple image size presets with custom dimensions
 - 💾 Local storage persistence for your chats and images
 - 📱 Responsive design optimized for all devices
+- ↔️ Resizable panels for customized workspace layout
 - 👥 Multi-selection capabilities for chat management
 - 📋 Copy prompt functionality for reuse and sharing
 - 🔍 Full-size image viewing experience
 - 💜 Beautiful professional UI with intuitive controls
 - ⚠️ Robust error handling with user-friendly messages
-- ⏱️ Request timeout management with graceful recovery
+- ⏱️ Request timeout management with graceful recovery (45 seconds)
 - 🔄 Concurrent image generation support
 
 ## Getting Started
@@ -32,11 +33,13 @@ A professional tool for media creators to generate, classify, and manage AI imag
 
 1. Clone the repository
 2. Install dependencies:
-   ```
+
+   ```bash
    npm install
    ```
 3. Create a `.env` file in the root directory with your Venice API key:
-   ```
+
+   ```env
    VITE_VENICE_API_KEY=your_api_key_here
    ```
 
@@ -44,7 +47,7 @@ A professional tool for media creators to generate, classify, and manage AI imag
 
 Start the development server:
 
-```
+```bash
 npm run dev
 ```
 
@@ -61,7 +64,7 @@ For demonstration and testing purposes, the application includes a robust mock i
 
 Build the application for production:
 
-```
+```bash
 npm run build
 ```
 
