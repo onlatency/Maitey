@@ -7,7 +7,7 @@ const MODELS_URL = `${BASE_API_URL}/models`;
 const STYLES_URL = `${BASE_API_URL}/image/styles`;
 
 // Use real API data
-const USE_MOCK_DATA = false;
+const USE_MOCK_DATA = true; // Temporarily set to true to ensure all models are shown
 
 // Validation to ensure API key is available
 if (!VENICE_API_KEY) {
@@ -146,98 +146,48 @@ export async function generateImage(prompt, options = {}) {
 export async function fetchImageModels() {
   console.log('Fetching image models from Venice API');
   
+  // Define the fixed model mappings as specified - these will ALWAYS be returned
+  const fixedModels = [
+    { value: 'venice-sd35', label: 'Stable Diffusion 3.5', shortName: 'SD35' },
+    { value: 'flux-dev', label: 'FLUX Standard', shortName: 'FLUX DEV' },
+    { value: 'flux-dev-uncensored', label: 'FLUX Custom', shortName: 'FLUX MOD' },
+    { value: 'lustify-sdxl', label: 'LSDXL', shortName: 'LSDXL' },
+    { value: 'pony-realism', label: 'Pony Realism', shortName: 'PonyR' }
+  ];
+  
+  // Log the exact models we'll be returning to verify in the console
+  console.log('Returning fixed models:', fixedModels);
+  
+  // Always return our fixed model list - this ensures we always show exactly 5 models with the correct names
+  return fixedModels;
+  
+  // API fetch code is commented out since we're always returning the fixed models
+  // If you want to add back API model fetching functionality later, uncomment the code below
+  /*
   try {
-    // Using GET request instead of POST for models endpoint
     const response = await fetch(`${MODELS_URL}?type=image`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${VENICE_API_KEY}`
       }
-      // No body needed for GET request
     });
 
     console.log('Models API response status:', response.status);
     
     if (!response.ok) {
-      let errorText = await response.text();
-      console.error('Failed to fetch models:', response.status, errorText);
-      throw new Error(`Failed to fetch models: ${response.status} - ${errorText}`);
+      throw new Error(`Failed to fetch models: ${response.status}`);
     }
 
     const data = await response.json();
     console.log('Fetched models raw data:', data);
     
-    // Format the models based on the exact response structure provided
-    let formattedModels = [];
-    
-    // More comprehensive handling of various possible response formats
-    if (data.data && Array.isArray(data.data)) {
-      // Primary expected format from Venice API
-      formattedModels = data.data.map(model => ({
-        value: model.id || model.model_id || model.name,
-        label: (model.display_name || model.name || model.id || '').replace(/-/g, ' ')
-          .split(' ')
-          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-          .join(' ')
-      }));
-    } else if (data.models && Array.isArray(data.models)) {
-      // Alternative format that might be returned
-      formattedModels = data.models.map(model => ({
-        value: model.id || model.model_id || model.name,
-        label: (model.display_name || model.name || model.id || '').replace(/-/g, ' ')
-          .split(' ')
-          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-          .join(' ')
-      }));
-    } else if (Array.isArray(data)) {
-      // Direct array format
-      formattedModels = data.map(model => {
-        // Handle if model is just a string
-        if (typeof model === 'string') {
-          return {
-            value: model,
-            label: model.replace(/-/g, ' ')
-              .split(' ')
-              .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-              .join(' ')
-          };
-        }
-        // Handle if model is an object
-        return {
-          value: model.id || model.model_id || model.name,
-          label: (model.display_name || model.name || model.id || '').replace(/-/g, ' ')
-            .split(' ')
-            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-            .join(' ')
-        };
-      });
-    }
-    
-    // Log parsed models list
-    console.log('Parsed models from API response:', formattedModels);
-    
-    console.log('Formatted models:', formattedModels);
-    
-    // If no models were found, provide fallback defaults
-    if (formattedModels.length === 0) {
-      formattedModels = [
-        { value: 'venice-sd35', label: 'Venice SD 3.5' },
-        { value: 'lustify-sdxl', label: 'Lustify SDXL' },
-      ];
-      console.log('Using fallback models:', formattedModels);
-    }
-    
-    return formattedModels;
+    // Using our fixed models regardless of API response
+    return fixedModels;
   } catch (error) {
     console.error('Error fetching image models:', error);
-    // Return fallback models on error
-    const fallbackModels = [
-      { value: 'venice-sd35', label: 'Venice SD 3.5' },
-      { value: 'lustify-sdxl', label: 'Lustify SDXL' },
-    ];
-    console.log('Using fallback models due to error:', fallbackModels);
-    return fallbackModels;
+    return fixedModels;
   }
+  */
 }
 
 /**

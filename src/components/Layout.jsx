@@ -7,13 +7,16 @@ import NegativePromptInput from './NegativePromptInput';
 import ImageSizeControl from './ImageSizeControl';
 import StyleQuickSelect from './StyleQuickSelect';
 import { useChatContext } from '../context/ChatContext';
-import { Check, GripVertical, Plus } from 'lucide-react';
+import { Check, GripVertical, Plus, Loader2 } from 'lucide-react';
+import { fetchImageModels } from '../api/veniceApi';
 
 function Layout() {
   const { createNewChat, activeChatId, settings, updateSettings } = useChatContext();
   const [sidebarWidth, setSidebarWidth] = useState(256); // 64*4px default width
   const [chatListHeight, setChatListHeight] = useState(window.innerHeight / 2);
   const [isSettingsEditable, setIsSettingsEditable] = useState(false);
+  const [models, setModels] = useState([]);
+  const [isLoadingModels, setIsLoadingModels] = useState(false);
   const [settingsPanels, setSettingsPanels] = useState([
     { id: 'model', label: 'Model' },
     { id: 'style', label: 'Style' },
@@ -22,6 +25,23 @@ function Layout() {
     { id: 'negativePrompts', label: 'Negative Prompts' },
     { id: 'imageSize', label: 'Image Size' }
   ]);
+  
+  // Fetch models when component mounts
+  useEffect(() => {
+    const loadModels = async () => {
+      setIsLoadingModels(true);
+      try {
+        const modelData = await fetchImageModels();
+        setModels(modelData);
+      } catch (error) {
+        console.error('Failed to load models:', error);
+      } finally {
+        setIsLoadingModels(false);
+      }
+    };
+    
+    loadModels();
+  }, []);
   
   const sidebarRef = useRef(null);
   const chatListRef = useRef(null);
@@ -185,21 +205,36 @@ function Layout() {
                   <div>
                     {!isSettingsEditable && <label className="block text-sm font-medium text-gray-700 mb-2">Model</label>}
                     <div className="relative">
-                      <select
-                        name="model"
-                        value={settings.model}
-                        onChange={(e) => updateSettings({ model: e.target.value })}
-                        className="w-full py-2.5 px-3 appearance-none bg-white border-2 border-purple-300 text-purple-800 rounded-md focus:ring-2 focus:ring-purple-400 focus:border-transparent shadow-sm"
-                      >
-                        <option value="venice-sd35">Stable Diffusion 3.5</option>
-                        <option value="lustify-sdxl">Lustify SDXL</option>
-                        <option value="venice-nsfw">Venice NSFW</option>
-                      </select>
-                      <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-purple-500">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
-                        </svg>
-                      </div>
+                      {isLoadingModels ? (
+                        <div className="flex items-center">
+                          <Loader2 className="animate-spin mr-2 text-purple-600" size={18} />
+                          <span className="text-purple-600 text-sm">Loading models...</span>
+                        </div>
+                      ) : (
+                        <>
+                          <select
+                            name="model"
+                            value={settings.model}
+                            onChange={(e) => updateSettings({ model: e.target.value })}
+                            className="w-full py-2.5 px-3 appearance-none bg-white border-2 border-purple-300 text-purple-800 rounded-md focus:ring-2 focus:ring-purple-400 focus:border-transparent shadow-sm"
+                          >
+                            {models.length > 0 ? (
+                              models.map(model => (
+                                <option key={model.value} value={model.value}>
+                                  {model.label}
+                                </option>
+                              ))
+                            ) : (
+                              <option value="venice-sd35">Stable Diffusion 3.5</option>
+                            )}
+                          </select>
+                          <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-purple-500">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                          </div>
+                        </>
+                      )}
                     </div>
                   </div>
                 )}

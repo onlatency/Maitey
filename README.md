@@ -244,6 +244,28 @@ Create a professional tool for media creators who need to generate, classify, an
 
 ## Recent Updates
 
+### May 8, 2025: UI and API Integration Enhancements
+
+- **Model Selection Improvements**:
+  - Fixed model dropdown to consistently display all five required models
+  - Implemented hardcoded model list to ensure reliability regardless of API response
+  - Standardized on five specific models with proper names:
+    - Stable Diffusion 3.5 (SD35)
+    - FLUX Standard (FLUX DEV)
+    - FLUX Custom (FLUX MOD)
+    - LSDXL (LSDXL)
+    - Pony Realism (PonyR)
+  - Enhanced dropdown UI with custom styling and proper arrow indicator
+  - Added both long and short name formats for different UI contexts
+
+- **Style Selection Enhancements**:
+  - Added a comprehensive style dropdown below the quick select buttons
+  - Implemented dynamic style loading from Venice API
+  - Maintained both quick-select buttons and complete dropdown for flexibility
+  - Enhanced styling to match model dropdown with consistent UI elements
+  - Added loading indicator that doesn't disrupt the layout
+  - Improved overall visual hierarchy and spacing
+
 ### May 8, 2025: Load Testing & Reliability Improvements
 
 - **Load Test Results**:
