@@ -123,23 +123,30 @@ function SettingsPanel() {
                   </div>
                 )}
               </div>
-              <select
-                name="model"
-                value={localSettings.model}
-                onChange={handleChange}
-                className="w-full p-2 border border-purple-200 rounded-md bg-white focus:ring-2 focus:ring-purple-300 focus:border-transparent"
-                disabled={isLoadingModels}
-              >
-                {models.length > 0 ? models.map(model => (
-                  <option key={model.value} value={model.value}>
-                    {model.label}
-                  </option>
-                )) : (
-                  <option value={localSettings.model}>
-                    {localSettings.model === 'venice-sd35' ? 'Venice SD 3.5' : localSettings.model}
-                  </option>
-                )}
-              </select>
+              <div className="relative">
+                <select
+                  name="model"
+                  value={localSettings.model}
+                  onChange={handleChange}
+                  className="w-full p-2 border border-purple-200 rounded-md bg-white focus:ring-2 focus:ring-purple-300 focus:border-transparent appearance-none"
+                  disabled={isLoadingModels}
+                >
+                  {models.length > 0 ? models.map(model => (
+                    <option key={model.value} value={model.value}>
+                      {model.label}
+                    </option>
+                  )) : (
+                    <option value={localSettings.model}>
+                      {localSettings.model === 'venice-sd35' ? 'Stable Diffusion 3.5' : localSettings.model}
+                    </option>
+                  )}
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                  <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                    <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" />
+                  </svg>
+                </div>
+              </div>
               {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
             </div>
 
@@ -153,21 +160,28 @@ function SettingsPanel() {
                   </div>
                 )}
               </div>
-              <select
-                name="stylePreset"
-                value={localSettings.stylePreset}
-                onChange={handleChange}
-                className="w-full p-2 border border-purple-200 rounded-md bg-white focus:ring-2 focus:ring-purple-300 focus:border-transparent"
-                disabled={isLoadingStyles}
-              >
-                {styles.length > 0 ? styles.map(style => (
-                  <option key={style} value={style}>
-                    {style}
-                  </option>
-                )) : (
-                  <option value={localSettings.stylePreset}>{localSettings.stylePreset}</option>
-                )}
-              </select>
+              <div className="relative">
+                <select
+                  name="stylePreset"
+                  value={localSettings.stylePreset}
+                  onChange={handleChange}
+                  className="w-full p-2 border border-purple-200 rounded-md bg-white focus:ring-2 focus:ring-purple-300 focus:border-transparent appearance-none"
+                  disabled={isLoadingStyles}
+                >
+                  {styles.length > 0 ? styles.map(style => (
+                    <option key={style} value={style}>
+                      {style}
+                    </option>
+                  )) : (
+                    <option value={localSettings.stylePreset}>{localSettings.stylePreset}</option>
+                  )}
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                  <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                    <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" />
+                  </svg>
+                </div>
+              </div>
             </div>
 
             {/* Size Controls */}
