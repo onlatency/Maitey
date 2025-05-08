@@ -1,17 +1,21 @@
-# Maitey Image Chat
+# Venice Image Chat - Professional Media UI
 
-A modern web application for generating beautiful AI images through a chat interface.
+A professional tool for media creators to generate, classify, and manage AI images at scale.
 
 ## Features
 
-- 🎨 Generate images from text prompts
-- 💬 Chat-based interface for a natural experience
-- 🖼️ Multiple image variations in a carousel view
-- ⚙️ Customizable generation settings
-- 💾 Local storage persistence for your chats
-- 📱 Responsive design for mobile and desktop
-- 🔄 Regenerate images with different variations
-- 💜 Beautiful purple-themed UI
+- 🎨 Generate images from text prompts with advanced settings
+- 🖼️ Professional gallery view for managing multiple images
+- 🔍 Image regeneration with one-click controls
+- ⚙️ Comprehensive image settings panel with style presets
+- 🪄 Negative prompt support for fine-tuned generation
+- 📏 Multiple image size presets with custom dimensions
+- 💾 Local storage persistence for your chats and images
+- 📱 Responsive design optimized for all devices
+- 👥 Multi-selection capabilities for chat management
+- 📋 Copy prompt functionality for reuse and sharing
+- 🔍 Full-size image viewing experience
+- 💜 Beautiful professional UI with intuitive controls
 
 ## Getting Started
 
@@ -41,6 +45,15 @@ Start the development server:
 npm run dev
 ```
 
+#### Mock Image Generation
+
+For demonstration and testing purposes, the application includes a robust mock image generation system:
+
+- Works without requiring a valid Venice API key
+- Returns style-appropriate images based on selected presets
+- Simulates API response timing for realistic testing
+- Maintains consistent behavior for both main prompt and regeneration flows
+
 ### Building for Production
 
 Build the application for production:
@@ -55,11 +68,13 @@ npm run build
 
 ## Tech Stack
 
-- React
-- Vite
-- Tailwind CSS
-- Context API for state management
-- Venice API for image generation
+- **Frontend Framework**: React with Vite
+- **Styling**: Tailwind CSS for responsive design
+- **State Management**: React Context API
+- **Image Generation**: Venice API integration
+- **Testing**: Mock image generator system
+- **Storage**: Local browser storage for persistence
+- **UI Components**: Custom-built components optimized for media workflows
 
 ## License
 
