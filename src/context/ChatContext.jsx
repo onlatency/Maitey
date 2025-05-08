@@ -27,7 +27,35 @@ const loadFromLocalStorage = () => {
   try {
     const savedState = localStorage.getItem('maiteyAppState');
     if (savedState) {
-      return JSON.parse(savedState);
+      // Parse the saved state
+      const parsedState = JSON.parse(savedState);
+      console.log('Loaded state from localStorage:', parsedState);
+      
+      // Validate the structure of the loaded state
+      if (!parsedState.chats || !Array.isArray(parsedState.chats)) {
+        console.error('Invalid state format in localStorage, chats array is missing or invalid');
+        return initialState;
+      }
+      
+      // Filter out any invalid chats (null, undefined, or missing required properties)
+      parsedState.chats = parsedState.chats.filter(chat => {
+        const isValid = chat && typeof chat === 'object' && chat.id && Array.isArray(chat.messages);
+        if (!isValid) {
+          console.warn('Filtered out invalid chat:', chat);
+        }
+        return isValid;
+      });
+      
+      // Ensure activeChatId points to an existing chat
+      if (parsedState.activeChatId) {
+        const activeChatExists = parsedState.chats.some(chat => chat.id === parsedState.activeChatId);
+        if (!activeChatExists) {
+          console.warn('Active chat ID does not exist in chats array, resetting');
+          parsedState.activeChatId = parsedState.chats.length > 0 ? parsedState.chats[0].id : null;
+        }
+      }
+      
+      return parsedState;
     }
   } catch (error) {
     console.error('Error loading state from localStorage:', error);
@@ -245,42 +273,90 @@ export const ChatProvider = ({ children }) => {
   // Monitor and create chats as needed - unified chat creation logic
   const lastGeneratedIdRef = React.useRef(0);
   
+  // This effect guarantees that we always have a valid chat when the app loads or state changes
   useEffect(() => {
-    // Case 1: No chats exist but we need to create one
-    if (state.chats.length === 0) {
-      // Generate a guaranteed unique ID based on timestamp and a counter
-      const timestamp = Date.now();
-      const uniqueId = timestamp + lastGeneratedIdRef.current;
-      lastGeneratedIdRef.current += 1;
+    // Create an async function to handle chat initialization with proper sequencing
+    const ensureValidChatExists = async () => {
+      console.log('Checking for valid chats...', {
+        chatsLength: state.chats.length,
+        activeChatId: state.activeChatId
+      });
       
-      const newChat = {
-        id: uniqueId,
-        name: `New Chat`,
-        messages: []
-      };
-      console.log('Creating new chat with unique ID:', uniqueId);
-      
-      // Add the chat first
-      dispatch({ type: ACTIONS.ADD_CHAT, payload: newChat });
-      
-      // Then set it as active with a small delay to ensure the ADD_CHAT completes
-      setTimeout(() => {
+      // Case 1: No chats exist - create a new one
+      if (state.chats.length === 0) {
+        // Generate a guaranteed unique ID based on timestamp and counter
+        const timestamp = Date.now();
+        const uniqueId = timestamp + lastGeneratedIdRef.current;
+        lastGeneratedIdRef.current += 1;
+        
+        const newChat = {
+          id: uniqueId,
+          name: `New Chat`,
+          messages: []
+        };
+        console.log('Creating new chat with unique ID:', uniqueId);
+        
+        // Add the chat first
+        dispatch({ type: ACTIONS.ADD_CHAT, payload: newChat });
+        
+        // Wait to ensure the ADD_CHAT action is processed
+        await new Promise(resolve => setTimeout(resolve, 50));
+        
+        // Then set it as active
         console.log('Setting newly created chat as active:', uniqueId);
         dispatch({ type: ACTIONS.SET_ACTIVE_CHAT, payload: uniqueId });
-      }, 10);
-    } 
-    // Case 2: Chats exist but no active chat is selected
-    else if (!state.activeChatId && state.chats.length > 0) {
-      // If there are chats but no active chat, set the first one as active
-      console.log('Setting first chat as active:', state.chats[0].id);
-      dispatch({ type: ACTIONS.SET_ACTIVE_CHAT, payload: state.chats[0].id });
-    }
+      } 
+      // Case 2: Chats exist but no active chat is selected
+      else if (!state.activeChatId && state.chats.length > 0) {
+        // Set the first chat as active
+        console.log('Setting first chat as active:', state.chats[0].id);
+        dispatch({ type: ACTIONS.SET_ACTIVE_CHAT, payload: state.chats[0].id });
+      }
+      // Case 3: Verify active chat actually exists in the chats array
+      else if (state.activeChatId && !state.chats.some(chat => chat.id === state.activeChatId)) {
+        console.warn('Active chat ID does not exist in chats array, resetting to first chat');
+        if (state.chats.length > 0) {
+          dispatch({ type: ACTIONS.SET_ACTIVE_CHAT, payload: state.chats[0].id });
+        } else {
+          // This shouldn't happen due to the first condition, but just in case
+          console.error('No chats available but activeChatId is set - creating new chat');
+          // Trigger the first condition on next render by clearing active chat id
+          dispatch({ type: ACTIONS.SET_ACTIVE_CHAT, payload: null });
+        }
+      }
+    };
+    
+    // Run the initialization function
+    ensureValidChatExists();
   }, [state.chats.length, state.activeChatId]);
   
   // Save state to localStorage whenever it changes
   useEffect(() => {
     try {
-      localStorage.setItem('maiteyAppState', JSON.stringify(state));
+      // Create a sanitized copy of the state for storage
+      const storageState = {
+        ...state,
+        chats: state.chats.map(chat => ({
+          ...chat,
+          // Handle messages with blob URLs
+          messages: chat.messages.map(msg => {
+            // For image messages, make sure we preserve the images array
+            if (msg.type === 'image') {
+              return {
+                ...msg,
+                // Keep the images array with URLs (even if they're blob URLs)
+                // They won't load on restart but at least the structure is preserved
+                images: Array.isArray(msg.images) ? [...msg.images] : []
+              };
+            }
+            return msg;
+          })
+        }))
+      };
+
+      // Save the sanitized state to localStorage
+      localStorage.setItem('maiteyAppState', JSON.stringify(storageState));
+      console.log('State saved to localStorage successfully');
     } catch (error) {
       console.error('Error saving state to localStorage:', error);
     }
