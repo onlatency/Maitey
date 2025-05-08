@@ -98,13 +98,13 @@ Transform the Venice Image Chat application into a professional tool for media c
 - [x] Implement loading states and error handling
 - [ ] Performance optimization for large image collections
 
-## API Integration Updates 
+## API Integration Updates
 
 - [x] Extend Venice API integration for negative prompts
 - [x] Add support for custom image dimensions
 - [x] Implement parallel request handling
 - [x] Create proper error handling for failed generations
-- [x] Conduct load testing for reliability under stress
+- [x] Implement load testing for reliability under stress
 
 ## Completed Tasks
 
@@ -156,6 +156,10 @@ Transform the Venice Image Chat application into a professional tool for media c
   - Fixed binary image data extraction from API responses
   - Improved API key validation and error reporting
   - Extended timeout duration to accommodate longer generation times
+
+## Known Limitations
+
+- **Puppeteer/Chrome Test Browser Resizing Issue**: The application exhibits resizing issues specifically in Puppeteer and Chrome test automation browsers. This limitation affects the interactive resizing of sidebar panels and image size controls when using test automation frameworks. This is not expected to impact regular end-users in Chrome, Firefox, or Safari browsers.
 
 ## Future Enhancements
 
