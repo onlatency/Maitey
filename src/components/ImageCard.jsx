@@ -1,16 +1,18 @@
-import React, { useState, useRef } from 'react';
-import { Download, Copy, RefreshCw, Maximize, Loader2, Check } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Download, Copy, RefreshCw, Maximize, Loader2, Check, AlertCircle, Trash2, Clock } from 'lucide-react';
 import { useChatContext } from '../context/ChatContext';
-import { getDirectMockImageUrl } from '../api/directMockGenerator';
 import { saveAs } from 'file-saver';
 import './Gallery.css';
 
-function ImageCard({ image, prompt, messageId, status, isLoading = false }) {
-  const { updateImageMessage, settings, addNewImage } = useChatContext();
+function ImageCard({ image, prompt, messageId, status, isLoading = false, error = null }) {
+  const { updateImageMessage, settings, addNewImage, getActiveChat, deleteMessage } = useChatContext();
+  const activeChat = getActiveChat();
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   const [isViewingFull, setIsViewingFull] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [imageSrc, setImageSrc] = useState(image?.url || null);
+  const [attempts, setAttempts] = useState(0);
   
   // Log props for debugging
   console.log('ImageCard props:', { image, prompt, messageId, status, isLoading });
@@ -46,24 +48,26 @@ function ImageCard({ image, prompt, messageId, status, isLoading = false }) {
     if (!prompt || isRegenerating) return;
     
     setIsRegenerating(true);
+    setImageError(false); // Reset the error state
+    setAttempts(0); // Reset attempts counter
     console.log('Regenerating image with prompt:', prompt);
     
-    // Use a simple timeout to simulate API delay but guarantee execution
-    setTimeout(() => {
-      try {
-        // Get a direct mock image URL
-        const imageUrl = getDirectMockImageUrl();
-        console.log('Generated new image URL:', imageUrl);
-        
-        // Add it directly to the chat
-        addNewImage(prompt, imageUrl);
-        console.log('Successfully added regenerated image');
-      } catch (error) {
-        console.error('Error during regeneration:', error);
-      } finally {
+    // Use the real Venice API to generate a new image with the same prompt
+    // This will trigger the appropriate chat context function to generate an image
+    // The new image will be added to the chat via context
+    try {
+      // Simply regenerate with the same prompt using the context function
+      // which will call the real API
+      addNewImage(prompt);
+      console.log('Requested new image generation with prompt:', prompt);
+    } catch (error) {
+      console.error('Error during regeneration:', error);
+      setImageError(true);
+    } finally {
+      setTimeout(() => {
         setIsRegenerating(false);
-      }
-    }, 1000); // Delay for UI feedback
+      }, 1000); // Provide feedback while API processes the request
+    }
   };
 
   // Handle opening the full-size image view
@@ -75,22 +79,58 @@ function ImageCard({ image, prompt, messageId, status, isLoading = false }) {
   const handleCloseFullView = () => {
     setIsViewingFull(false);
   };
+  
+  // Delete the image
+  const handleDeleteImage = (e) => {
+    e.stopPropagation(); // Prevent triggering parent click handlers
+    
+    if (!messageId || !activeChat) return;
+    
+    // Confirm deletion
+    if (window.confirm('Are you sure you want to remove this image?')) {
+      console.log('Deleting image message with ID:', messageId);
+      
+      // Use the ChatContext's deleteMessage function
+      deleteMessage(messageId);
+    }
+  };
 
-  // Loading or error state
-  if (isLoading || !image?.url || imageError) {
+  // Effect to handle image loading and fallback mechanisms
+  useEffect(() => {
+    // Skip if loading or no initial URL
+    if (isLoading || !image?.url) return;
+    
+    // Reset state when image prop changes
+    if (image?.url !== imageSrc) {
+      setImageSrc(image.url);
+      setImageError(false);
+      setAttempts(0);
+    }
+  }, [image?.url, isLoading]);
+  
+  // Handle image loading errors
+  const handleImageError = () => {
+    console.error(`Image failed to load: ${imageSrc}`);
+    
+    // With the real API, we don't want to try multiple fallbacks
+    // Instead, we'll just show an error state
+    console.log('Image failed to load, showing error state');
+    setImageError(true);
+  };
+
+  // Get error message if it exists
+  const errorMessage = error || (status === 'error' ? 'Failed to generate image' : null);
+  const isTimeout = errorMessage && (errorMessage.includes('timeout') || errorMessage.includes('aborted'));
+  
+  // Loading state
+  if (isLoading) {
     return (
       <div className="bg-white rounded-lg shadow-md overflow-hidden border border-purple-100 flex flex-col h-full">
         <div className="aspect-square bg-gray-100 flex items-center justify-center">
-          {isLoading ? (
-            <div className="flex flex-col items-center">
-              <Loader2 size={48} className="text-purple-500 animate-spin" />
-              <p className="mt-2 text-sm text-gray-500">Generating image...</p>
-            </div>
-          ) : (
-            <div className="text-gray-400">
-              {imageError ? 'Image failed to load' : 'No image available'}
-            </div>
-          )}
+          <div className="flex flex-col items-center">
+            <Loader2 size={48} className="text-purple-500 animate-spin" />
+            <p className="mt-2 text-sm text-gray-500">Generating image...</p>
+          </div>
         </div>
         <div className="p-3 bg-gray-50">
           {prompt ? (
@@ -105,19 +145,94 @@ function ImageCard({ image, prompt, messageId, status, isLoading = false }) {
     );
   }
 
+  // Error state
+  if (status === 'error' || imageError) {
+    // Make sure to log the error details to debug
+    console.log('Rendering error card for:', { messageId, status, error, imageError });
+    
+    const errorMsg = error || 'Failed to load image';
+    const isTimeout = errorMsg.includes('timeout') || errorMsg.includes('too long');
+    
+    return (
+      <div className="bg-white rounded-lg shadow-md overflow-hidden border border-rose-200 flex flex-col h-full">
+        <div className="aspect-square bg-gray-100 flex items-center justify-center">
+          <div className="text-center text-gray-600 p-4 flex flex-col items-center">
+            {isTimeout ? (
+              <>
+                <Clock className="w-10 h-10 mb-2 text-amber-500" />
+                <p className="font-medium">Request Timed Out</p>
+                <p className="text-sm mt-1">The server took too long to respond.</p>
+              </>
+            ) : (
+              <>
+                <AlertCircle className="w-10 h-10 mb-2 text-red-500" />
+                <p className="font-medium">Error Generating Image</p>
+                <p className="text-sm mt-1">{errorMsg}</p>
+              </>
+            )}
+          </div>
+        </div>
+
+        <div className="p-3 bg-white">
+          <p className="text-gray-700 text-sm truncate mb-2">{prompt || 'Image generation error'}</p>
+          
+          <div className="flex justify-between items-center">
+            <div>
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleRegenerate();
+                }} 
+                className="text-xs bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded mr-2"
+              >
+                Regenerate
+              </button>
+            </div>
+            
+            <div className="flex space-x-1">
+              {/* Download button disabled for error state */}
+              <button 
+                className="text-gray-400 cursor-not-allowed p-1 rounded hover:bg-gray-100" 
+                disabled
+              >
+                <Download size={16} />
+              </button>
+              
+              <button 
+                onClick={handleDeleteImage} 
+                className="text-gray-500 p-1 rounded hover:bg-gray-100 hover:text-red-500"
+              >
+                <Trash2 size={16} />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
       <div className="bg-white rounded-lg shadow-md overflow-hidden border border-purple-100 flex flex-col h-full">
-        {/* Image */}
-        <div className="aspect-square relative group">
+        {/* Image - now clickable */}
+        <div 
+          className="aspect-square relative group cursor-pointer" 
+          onClick={handleViewFull}
+        >
           <img 
-            src={image.url} 
+            src={imageSrc} 
             alt={prompt || "Generated image"} 
             className="w-full h-full object-cover"
             loading="lazy"
-            onError={() => setImageError(true)}
+            onError={handleImageError}
           />
           <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity duration-200"></div>
+          {/* Overlay hint */}
+          <div className="absolute inset-0 hidden group-hover:flex items-center justify-center">
+            <div className="bg-black bg-opacity-50 text-white px-4 py-2 rounded-md text-sm shadow-lg">
+              Click to enlarge
+            </div>
+          </div>
         </div>
         
         {/* Prompt text area */}
@@ -128,22 +243,23 @@ function ImageCard({ image, prompt, messageId, status, isLoading = false }) {
           
           {/* Control buttons */}
           <div className="flex justify-between">
-            {/* Download button */}
+            {/* Download button - disabled for error states */}
             <button
               onClick={handleDownload}
-              className="p-2 text-purple-600 hover:bg-purple-50 rounded-md transition-colors"
-              title="Download image"
+              className={`p-2 rounded-md transition-colors ${status === 'error' ? 'text-gray-400 cursor-not-allowed' : 'text-purple-600 hover:bg-purple-50'}`}
+              title={status === 'error' ? 'Download unavailable' : 'Download image'}
+              disabled={status === 'error'}
             >
               <Download size={20} />
             </button>
             
-            {/* View full-size button */}
+            {/* Delete button */}
             <button
-              onClick={handleViewFull}
-              className="p-2 text-purple-600 hover:bg-purple-50 rounded-md transition-colors"
-              title="View full size"
+              onClick={handleDeleteImage}
+              className="p-2 text-red-500 hover:bg-red-50 rounded-md transition-colors"
+              title="Delete image"
             >
-              <Maximize size={20} />
+              <Trash2 size={20} />
             </button>
             
             {/* Regenerate button */}
@@ -179,7 +295,7 @@ function ImageCard({ image, prompt, messageId, status, isLoading = false }) {
         <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4" onClick={handleCloseFullView}>
           <div className="max-w-screen-xl max-h-screen-90 relative" onClick={(e) => e.stopPropagation()}>
             <img 
-              src={image.url} 
+              src={imageSrc} 
               alt={prompt || "Generated image"} 
               className="max-w-full max-h-[90vh] object-contain rounded shadow-lg"
             />

@@ -8,13 +8,24 @@ function ImageGallery() {
 
   // Add logging to debug the active chat and messages
   console.log('Active Chat:', activeChat);
+  console.log('Active Generations:', activeGenerations);
 
-  // Extract all image messages from the active chat
-  const imageMessages = activeChat?.messages?.filter(msg => 
-    msg.type === 'image' || msg.images?.length > 0
-  ) || [];
+  // Extract all image messages from the active chat, including those with error status
+  // IMPORTANT: Be more explicit about including error messages
+  const imageMessages = activeChat?.messages?.filter(msg => {
+    // Include ANY message that is of type 'image', regardless of status
+    if (msg.type === 'image') return true;
+    // Or has images array
+    if (msg.images?.length > 0) return true;
+    // Or is explicitly marked with error status
+    if (msg.status === 'error') return true;
+    return false;
+  }) || [];
   
-  console.log('Image Messages:', imageMessages);
+  // Sort messages by timestamp - newest first
+  imageMessages.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  
+  console.log('Filtered Image Messages:', imageMessages);
 
   return (
     <div className="flex-1 p-4 overflow-y-auto bg-gray-50">
@@ -42,6 +53,7 @@ function ImageGallery() {
                       prompt={message.text}
                       messageId={message.id}
                       status={message.status}
+                      error={message.error}
                     />
                   );
                 });
@@ -56,6 +68,7 @@ function ImageGallery() {
                     prompt={message.text}
                     messageId={message.id}
                     status={message.status}
+                    error={message.error}
                   />
                 );
               }
@@ -64,10 +77,10 @@ function ImageGallery() {
             }).flat() // Flatten because map within map returns nested arrays
           )}
           
-          {/* Show a placeholder card for the image being generated */}
-          {isLoading && (
-            <ImageCard isLoading={true} />
-          )}
+          {/* Show a placeholder card for EACH image being generated */}
+          {activeGenerations.map(genId => (
+            <ImageCard key={`loading-${genId}`} isLoading={true} messageId={genId} />
+          ))}
         </div>
       ) : (
         <div className="flex items-center justify-center h-full">

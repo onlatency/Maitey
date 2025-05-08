@@ -16,6 +16,9 @@ A professional tool for media creators to generate, classify, and manage AI imag
 - 📋 Copy prompt functionality for reuse and sharing
 - 🔍 Full-size image viewing experience
 - 💜 Beautiful professional UI with intuitive controls
+- ⚠️ Robust error handling with user-friendly messages
+- ⏱️ Request timeout management with graceful recovery
+- 🔄 Concurrent image generation support
 
 ## Getting Started
 

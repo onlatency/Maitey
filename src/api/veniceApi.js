@@ -1,5 +1,4 @@
 // API configuration - Using environment variables for secure key management
-import { mockGenerateImage, mockDelay } from './mockImageGenerator';
 
 const VENICE_API_KEY = import.meta.env.VITE_VENICE_API_KEY || '';
 const BASE_API_URL = 'https://api.venice.ai/api/v1';
@@ -7,8 +6,8 @@ const IMAGE_GENERATE_URL = `${BASE_API_URL}/image/generate`;
 const MODELS_URL = `${BASE_API_URL}/models`;
 const STYLES_URL = `${BASE_API_URL}/image/styles`;
 
-// Since we don't have a valid API key in this demonstration, always use mock data
-const USE_MOCK_DATA = true;
+// Use real API data
+const USE_MOCK_DATA = false;
 
 // Validation to ensure API key is available
 if (!VENICE_API_KEY) {
@@ -22,26 +21,6 @@ if (!VENICE_API_KEY) {
 export async function generateImage(prompt, options = {}) {
   // Log the options received to debug
   console.log('Generate Image called with options:', options);
-  
-  // For demonstration purposes, always use mock data
-  if (USE_MOCK_DATA) {
-    console.log('Using reliable mock image generator');
-    
-    try {
-      // Use our improved mock generator
-      const result = await mockGenerateImage(prompt, options);
-      
-      // Return in the format expected by our components
-      return {
-        imageUrl: result.imageUrl,
-        settings: options,
-        prompt: prompt
-      };
-    } catch (error) {
-      console.error('Error in mock image generation:', error);
-      throw new Error('Failed to generate mock image');
-    }
-  }
   
   // Ensure numeric parameters are properly converted
   const ensureNumber = (value, defaultValue) => {
@@ -78,8 +57,15 @@ export async function generateImage(prompt, options = {}) {
   try {
     console.log('Sending request to:', IMAGE_GENERATE_URL);
     console.log('With authentication:', `Bearer ${VENICE_API_KEY.substring(0, 5)}...`);
+    console.log('Payload:', JSON.stringify(payload, null, 2));
     
-    // Set up timeout for fetch request
+    // Explicit validation of API key
+    if (!VENICE_API_KEY || VENICE_API_KEY.length < 10) {
+      console.error('Invalid API key:', VENICE_API_KEY);
+      throw new Error('Invalid or missing API key. Check your .env file.');
+    }
+    
+    // Set up timeout for fetch request - increased to allow more time for generation
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
     
@@ -97,47 +83,79 @@ export async function generateImage(prompt, options = {}) {
       
       // Clear the timeout as the request completed
       clearTimeout(timeoutId);
+      
+      // Log full response information for debugging
+      console.log('Response status:', response.status);
+      console.log('Response headers:', Object.fromEntries([...response.headers.entries()]));
+      
+      // Handle HTTP errors immediately
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`API error (${response.status}):`, errorText);
+        throw new Error(`Venice API error: ${response.status} - ${errorText || 'Unknown error'}`);
+      }
     } catch (fetchError) {
       clearTimeout(timeoutId);
       if (fetchError.name === 'AbortError') {
         console.error('Request timed out after 30 seconds');
-        throw new Error('Request timed out. Please try again later.');
+        throw new Error('Request timed out. The server took too long to respond.');
       }
-      throw fetchError;
+      console.error('Fetch error:', fetchError);
+      throw new Error(`Network error: ${fetchError.message}`);
     }
     
-    console.log('Response status:', response.status);
-    console.log('Response headers:', [...response.headers.entries()]);
-
-    if (!response.ok) {
-      let errorData;
+    // We've already logged response status and headers and handled response errors above
+    
+    // According to the Venice API swagger, the response depends on return_binary setting
+    if (payload.return_binary) {
+      // For binary responses, we get the raw image data
       try {
-        errorData = await response.json(); // Try to parse error response as JSON
-      } catch (e) {
-        try {
-          errorData = await response.text(); // Fallback to text if JSON parsing fails
-        } catch (textError) {
-          errorData = 'Could not read error response';
+        // Check content type to confirm we got an image
+        const contentType = response.headers.get('content-type');
+        console.log('Response content type:', contentType);
+        
+        if (!contentType || !contentType.includes('image/')) {
+          // We didn't get an image, try to read as text for error
+          const errorText = await response.text();
+          console.error('Expected image but got:', errorText);
+          throw new Error('API did not return an image. Received: ' + (contentType || 'unknown'));
         }
+        
+        // Process the image blob
+        const imageBlob = await response.blob();
+        
+        if (!imageBlob || imageBlob.size === 0) {
+          throw new Error('Received empty image data');
+        }
+        
+        console.log('Successfully received image blob:', imageBlob.type, imageBlob.size, 'bytes');
+        
+        // Create a URL for the blob
+        const imageUrl = URL.createObjectURL(imageBlob);
+        
+        // Return both the URL and blob
+        return {
+          imageUrl,
+          imageBlob,
+          success: true
+        };
+      } catch (blobError) {
+        console.error('Error processing image blob:', blobError);
+        throw new Error(`Failed to process image: ${blobError.message}`);
       }
-      console.error('Venice API Error:', errorData);
-      console.error('Response status:', response.status);
-      console.error('Request payload:', payload);
-      throw new Error(`API request failed with status ${response.status}: ${typeof errorData === 'object' ? JSON.stringify(errorData) : errorData}`);
+    } else {
+      // For non-binary responses, we expect JSON data
+      try {
+        const data = await response.json();
+        console.log('Received JSON response:', data);
+        // Handle JSON response data
+        // For now, just return the data as is
+        return data;
+      } catch (jsonError) {
+        console.error('Error parsing JSON response:', jsonError);
+        throw new Error(`Failed to parse JSON response: ${jsonError.message}`);
+      }
     }
-
-    // return_binary: true means the response body is the image blob directly
-    const imageBlob = await response.blob();
-    
-    // Create a URL for the blob
-    const imageUrl = URL.createObjectURL(imageBlob);
-    
-    // Return an object with the imageUrl and the blob
-    return {
-      imageUrl,
-      imageBlob
-    };
-
   } catch (error) {
     console.error('Error generating image via Venice API:', error);
     throw error; // Re-throw to be caught by the caller
@@ -149,17 +167,6 @@ export async function generateImage(prompt, options = {}) {
  */
 export async function fetchImageModels() {
   console.log('Fetching image models from Venice API');
-  
-  // Always return mock models for the demo
-  if (USE_MOCK_DATA) {
-    await mockDelay(300);
-    
-    return [
-      { value: 'venice-sd35', label: 'Stable Diffusion 3.5' },
-      { value: 'lustify-sdxl', label: 'Lustify SDXL' },
-      { value: 'venice-diffusion', label: 'Venice Diffusion' }
-    ];
-  }
   
   try {
     // Using GET request instead of POST for models endpoint
@@ -256,26 +263,10 @@ export async function fetchImageModels() {
 }
 
 /**
- * Fetch available image styles from Venice API
+ * Fetch available image style presets from Venice API
  */
 export async function fetchImageStyles() {
   console.log('Fetching image styles from Venice API');
-  
-  // Always return mock styles for the demo
-  if (USE_MOCK_DATA) {
-    await mockDelay(300);
-    
-    return [
-      'Photographic',
-      'None',
-      'Hyperrealism',
-      'Enhance',
-      'Analog Film',
-      'Cinematic',
-      'Texture',
-      'Abstract'
-    ];
-  }
   console.log('API Key available:', VENICE_API_KEY ? 'Yes' : 'No');
   
   try {

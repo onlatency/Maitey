@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Lightbulb, Loader2, AlertCircle } from 'lucide-react';
 import { useChatContext } from '../context/ChatContext';
-import { getDirectMockImageUrl } from '../api/directMockGenerator';
 
 function PersistentPromptInput() {
   const { 
@@ -29,32 +28,24 @@ function PersistentPromptInput() {
   
   const MAX_PROMPT_LENGTH = 1500; // Venice API limit
   
-  const generateNewImage = () => {
+  const generateNewImage = async () => {
     if (!promptText.trim() || promptText.length > MAX_PROMPT_LENGTH) return;
     
-    // Set loading state - this will show the loading spinner
-    setLoading(true);
     console.log('Starting image generation with prompt:', promptText);
     
-    // Use a very simple setTimeout to simulate API delay but guarantee execution
-    setTimeout(() => {
-      try {
-        // Use our direct mock generator to get an image URL immediately
-        const imageUrl = getDirectMockImageUrl();
-        console.log('Generated mock image URL:', imageUrl);
-        
-        // Add it directly to the chat
-        addNewImage(promptText, imageUrl);
-        
-        console.log('Successfully added image to chat');
-      } catch (error) {
-        console.error('Error in image generation:', error);
-        setError('Failed to generate image');
-      } finally {
-        // Always reset loading state
-        setLoading(false);
-      }
-    }, 800); // Delay for UI feedback
+    try {
+      // Use the real Venice API via the context function
+      // The addNewImage function now handles all the API interaction
+      await addNewImage(promptText);
+      
+      // Clear input after successful submission
+      setPromptText('');
+      
+      console.log('Image generation request submitted');
+    } catch (error) {
+      console.error('Error requesting image generation:', error);
+      setError('Failed to start image generation');
+    }
   };
   
   const handleSubmit = (e) => {
