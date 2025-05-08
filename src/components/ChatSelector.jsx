@@ -58,7 +58,7 @@ function ChatSelector() {
   return (
     <div className="flex flex-col h-full">
       <div className="flex justify-between items-center p-2 border-b border-purple-100">
-        <h2 className="font-bold text-purple-800">MAITEY CHATS</h2>
+        <h2 className="font-bold text-purple-800">MAITEYCHAT</h2>
         <div className="flex items-center space-x-2">
           <button
             onClick={toggleMultiSelectMode}

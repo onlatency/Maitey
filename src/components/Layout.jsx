@@ -19,9 +19,9 @@ function Layout() {
   return (
     <div className="flex h-screen bg-gray-50">
       {/* Left Panel - Chats and Settings */}
-      <div className="w-64 flex flex-col bg-cream-100 border-r border-purple-100">
+      <div className="min-w-[200px] w-64 max-w-[400px] flex flex-col bg-cream-100 border-r border-purple-100 resize-x overflow-hidden relative">
         {/* Chat List Section */}
-        <div className="h-1/2 overflow-y-auto">
+        <div className="min-h-[100px] h-1/2 max-h-[calc(100%-100px)] overflow-y-auto resize-y border-b border-purple-100 relative">
           <ChatSelector />
           
           {/* New Chat Button */}
@@ -37,7 +37,7 @@ function Layout() {
         </div>
         
         {/* Settings Panel - Always show settings panel */}
-        <div className="h-1/2 p-3 space-y-4 bg-cream-50 border-t border-purple-100 overflow-y-auto">
+        <div className="flex-1 min-h-[100px] p-3 space-y-4 bg-cream-50 overflow-y-auto">
           <h3 className="font-medium text-purple-800">Image Settings</h3>
             
             {/* Model Selection */}
