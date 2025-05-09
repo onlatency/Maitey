@@ -242,7 +242,7 @@ Create a professional tool for media creators who need to generate, classify, an
 
 ### May 8, 2025 - Code Cleanup & Stability Improvements
 
-- Removed unused components (WelcomeScreen, ChatView, ChatList, PromptInput)
+- Removed unused components (WelcomeScreen, ChatView, ChatList, PromptInput, ImageCarousel, MessageBubble)
 - Removed associated test files for unused components
 - Simplified codebase by eliminating redundant code
 - Improved maintainability through better code organization
